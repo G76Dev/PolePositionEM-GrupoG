@@ -4,10 +4,10 @@ using UnityEngine;
 
 public class CircuitController : MonoBehaviour
 {
-    private LineRenderer m_CircuitPath;
-    private Vector3[] m_PathPos;
-    private float[] m_CumArcLength;
-    private float m_TotalLength;
+    private LineRenderer m_CircuitPath; //pintado de la linea
+    private Vector3[] m_PathPos; //posicion en el camino
+    private float[] m_CumArcLength; 
+    private float m_TotalLength; //longitud total del circuito
 
     public float CircuitLength
     {
@@ -16,9 +16,9 @@ public class CircuitController : MonoBehaviour
 
     void Start()
     {
-        m_CircuitPath = GetComponent<LineRenderer>();
+        m_CircuitPath = GetComponent<LineRenderer>(); //obtenemos la linea del circuito
 
-        int numPoints = m_CircuitPath.positionCount;
+        int numPoints = m_CircuitPath.positionCount; 
         m_PathPos = new Vector3[numPoints];
         m_CumArcLength = new float[numPoints];
         m_CircuitPath.GetPositions(m_PathPos);

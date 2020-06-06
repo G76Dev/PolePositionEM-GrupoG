@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+//CONTROLES DE LA CAMARA
 public class CameraController : MonoBehaviour
 {
     [SerializeField] public GameObject m_Focus;
@@ -9,9 +10,9 @@ public class CameraController : MonoBehaviour
     [SerializeField] public Vector3 m_offset = new Vector3(10, 10, 10);
 
     [SerializeField] public CircuitController m_Circuit;
-    [SerializeField] private float m_Distance = 10;
-    [SerializeField] private float m_Elevation = 8;
-    [Range(0, 1)] [SerializeField] private float m_Following = 0.5f;
+    [SerializeField] private float m_Distance = 4.5f; //distancia al objeto
+    [SerializeField] private float m_Elevation = 2; //elevacion de la camara
+    [Range(0, 1)] [SerializeField] private float m_Following = 0.5f; 
 
     private Vector3 m_Direction = Vector3.zero;
 
@@ -35,9 +36,9 @@ public class CameraController : MonoBehaviour
                     this.m_Direction = new Vector3(0f, -1f, 0f);
                 }
 
-                int segIdx;
-                float carDist;
-                Vector3 carProj;
+                int segIdx; 
+                float carDist; //distancia al coche
+                Vector3 carProj; //proyeccion al coche
 
                 m_Circuit.ComputeClosestPointArcLength(m_Focus.transform.position, out segIdx, out carProj,
                     out carDist);

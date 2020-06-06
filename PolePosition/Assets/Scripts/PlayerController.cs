@@ -13,11 +13,15 @@ public class PlayerController : NetworkBehaviour
     #region Variables
 
     [Header("Movement")] public List<AxleInfo> axleInfos;
+    //velocidades del motor
     public float forwardMotorTorque = 100000;
     public float backwardMotorTorque = 50000;
+    //angulo maximo de direccion
     public float maxSteeringAngle = 15;
+    //maximo valo de frenado
     public float engineBrake = 1e+12f;
     public float footBrake = 1e+24f;
+    //velocidad maxima
     public float topSpeed = 200f;
     public float downForce = 100f;
     public float slipLimit = 0.2f;
@@ -35,6 +39,7 @@ public class PlayerController : NetworkBehaviour
 
     private float m_CurrentSpeed = 0;
 
+    //velocidad
     private float Speed
     {
         get { return m_CurrentSpeed; }

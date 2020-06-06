@@ -11,11 +11,16 @@ public class UIManager : MonoBehaviour
 
     private NetworkManager m_NetworkManager;
 
+    public String userName;//string donde almacenar el nombre del jugador que posteriormente pasaremos al playerInfo
+
     [Header("Main Menu")] [SerializeField] private GameObject mainMenu;
     [SerializeField] private Button buttonHost;
     [SerializeField] private Button buttonClient;
     [SerializeField] private Button buttonServer;
     [SerializeField] private InputField inputFieldIP;
+
+    [SerializeField] private InputField nameField; //campo donde almacenar el nombre del jugador
+    //igual que para poner la ip se puede aprovechar para añadir el nombre
 
     [Header("In-Game HUD")] [SerializeField]
     private GameObject inGameHUD;
@@ -56,14 +61,21 @@ public class UIManager : MonoBehaviour
 
     private void StartHost()
     {
+        //se almacena el nombre en este caso del host
+        userName = "host";
         m_NetworkManager.StartHost();
         ActivateInGameHUD();
+     
     }
 
     private void StartClient()
     {
+        //se almacena el nombre en este caso del cliene
+        userName = nameField.text;
         m_NetworkManager.StartClient();
         m_NetworkManager.networkAddress = inputFieldIP.text;
+
+        
         ActivateInGameHUD();
     }
 

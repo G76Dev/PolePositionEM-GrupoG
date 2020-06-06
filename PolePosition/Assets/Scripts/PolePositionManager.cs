@@ -7,17 +7,17 @@ using UnityEngine;
 
 public class PolePositionManager : NetworkBehaviour
 {
-    public int numPlayers;
-    public NetworkManager networkManager;
+    public int numPlayers;//numero de jugadores
+    public NetworkManager networkManager;//controlador de la conexion
 
     private readonly List<PlayerInfo> m_Players = new List<PlayerInfo>(4);
-    private CircuitController m_CircuitController;
-    private GameObject[] m_DebuggingSpheres;
+    private CircuitController m_CircuitController;//controlador del circuito
+    private GameObject[] m_DebuggingSpheres;//esfera para uso en el debug
 
     private void Awake()
     {
-        if (networkManager == null) networkManager = FindObjectOfType<NetworkManager>();
-        if (m_CircuitController == null) m_CircuitController = FindObjectOfType<CircuitController>();
+        if (networkManager == null) networkManager = FindObjectOfType<NetworkManager>();//duda
+        if (m_CircuitController == null) m_CircuitController = FindObjectOfType<CircuitController>();//duda
 
         m_DebuggingSpheres = new GameObject[networkManager.maxConnections];
         for (int i = 0; i < networkManager.maxConnections; ++i)
@@ -35,6 +35,7 @@ public class PolePositionManager : NetworkBehaviour
         UpdateRaceProgress();
     }
 
+    //añade un jugador
     public void AddPlayer(PlayerInfo player)
     {
         m_Players.Add(player);
@@ -75,7 +76,7 @@ public class PolePositionManager : NetworkBehaviour
             myRaceOrder += _player.Name + " ";
         }
 
-        Debug.Log("El orden de carrera es: " + myRaceOrder);
+        Debug.Log("El orden de carrera es: " + myRaceOrder + "\n" );
     }
 
     float ComputeCarArcLength(int ID)
