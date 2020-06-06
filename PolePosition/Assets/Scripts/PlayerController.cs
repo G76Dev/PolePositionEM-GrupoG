@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
+using System.Collections;
 
 /*
 	Documentation: https://mirror-networking.com/docs/Guides/NetworkBehaviour.html
@@ -25,6 +26,9 @@ public class PlayerController : NetworkBehaviour
     public float topSpeed = 200f;
     public float downForce = 100f;
     public float slipLimit = 0.2f;
+
+    public bool canMove = true; //Decide si el jugador puede moverse
+    public float crashTimer = 0;
 
     private float CurrentRotation { get; set; }
     private float InputAcceleration { get; set; }
@@ -62,16 +66,33 @@ public class PlayerController : NetworkBehaviour
 
     public void Awake()
     {
+        canMove = true;
         m_Rigidbody = GetComponent<Rigidbody>();
         m_PlayerInfo = GetComponent<PlayerInfo>();
     }
 
     public void Update()
     {
-        InputAcceleration = Input.GetAxis("Vertical");
-        InputSteering = Input.GetAxis(("Horizontal"));
-        InputBrake = Input.GetAxis("Jump");
-        Speed = m_Rigidbody.velocity.magnitude;
+        //print(canMove);
+        //print(crashTimer);
+
+        if (canMove)
+        {
+
+            InputAcceleration = Input.GetAxis("Vertical");
+            InputSteering = Input.GetAxis(("Horizontal"));
+            InputBrake = Input.GetAxis("Jump");
+            Speed = m_Rigidbody.velocity.magnitude;
+
+        } 
+        else
+        {
+            Speed = 0;
+            InputAcceleration = 0;
+            InputSteering = 0;
+            InputBrake = 0;
+        }
+
     }
 
     public void FixedUpdate()
@@ -82,55 +103,56 @@ public class PlayerController : NetworkBehaviour
 
         float steering = maxSteeringAngle * InputSteering;
 
-        foreach (AxleInfo axleInfo in axleInfos)
-        {
-            if (axleInfo.steering)
+            foreach (AxleInfo axleInfo in axleInfos)
             {
-                axleInfo.leftWheel.steerAngle = steering;
-                axleInfo.rightWheel.steerAngle = steering;
+                if (axleInfo.steering)
+                {
+                    axleInfo.leftWheel.steerAngle = steering;
+                    axleInfo.rightWheel.steerAngle = steering;
+                }
+
+                if (axleInfo.motor)
+                {
+                    if (InputAcceleration > float.Epsilon)
+                    {
+                        axleInfo.leftWheel.motorTorque = forwardMotorTorque;
+                        axleInfo.leftWheel.brakeTorque = 0;
+                        axleInfo.rightWheel.motorTorque = forwardMotorTorque;
+                        axleInfo.rightWheel.brakeTorque = 0;
+                    }
+
+                    if (InputAcceleration < -float.Epsilon)
+                    {
+                        axleInfo.leftWheel.motorTorque = -backwardMotorTorque;
+                        axleInfo.leftWheel.brakeTorque = 0;
+                        axleInfo.rightWheel.motorTorque = -backwardMotorTorque;
+                        axleInfo.rightWheel.brakeTorque = 0;
+                    }
+
+                    if (Math.Abs(InputAcceleration) < float.Epsilon)
+                    {
+                        axleInfo.leftWheel.motorTorque = 0;
+                        axleInfo.leftWheel.brakeTorque = engineBrake;
+                        axleInfo.rightWheel.motorTorque = 0;
+                        axleInfo.rightWheel.brakeTorque = engineBrake;
+                    }
+
+                    if (InputBrake > 0)
+                    {
+                        axleInfo.leftWheel.brakeTorque = footBrake;
+                        axleInfo.rightWheel.brakeTorque = footBrake;
+                    }
+                }
+
+                ApplyLocalPositionToVisuals(axleInfo.leftWheel);
+                ApplyLocalPositionToVisuals(axleInfo.rightWheel);
             }
 
-            if (axleInfo.motor)
-            {
-                if (InputAcceleration > float.Epsilon)
-                {
-                    axleInfo.leftWheel.motorTorque = forwardMotorTorque;
-                    axleInfo.leftWheel.brakeTorque = 0;
-                    axleInfo.rightWheel.motorTorque = forwardMotorTorque;
-                    axleInfo.rightWheel.brakeTorque = 0;
-                }
+            SteerHelper();
+            SpeedLimiter();
+            AddDownForce();
+            TractionControl();
 
-                if (InputAcceleration < -float.Epsilon)
-                {
-                    axleInfo.leftWheel.motorTorque = -backwardMotorTorque;
-                    axleInfo.leftWheel.brakeTorque = 0;
-                    axleInfo.rightWheel.motorTorque = -backwardMotorTorque;
-                    axleInfo.rightWheel.brakeTorque = 0;
-                }
-
-                if (Math.Abs(InputAcceleration) < float.Epsilon)
-                {
-                    axleInfo.leftWheel.motorTorque = 0;
-                    axleInfo.leftWheel.brakeTorque = engineBrake;
-                    axleInfo.rightWheel.motorTorque = 0;
-                    axleInfo.rightWheel.brakeTorque = engineBrake;
-                }
-
-                if (InputBrake > 0)
-                {
-                    axleInfo.leftWheel.brakeTorque = footBrake;
-                    axleInfo.rightWheel.brakeTorque = footBrake;
-                }
-            }
-
-            ApplyLocalPositionToVisuals(axleInfo.leftWheel);
-            ApplyLocalPositionToVisuals(axleInfo.rightWheel);
-        }
-
-        SteerHelper();
-        SpeedLimiter();
-        AddDownForce();
-        TractionControl();
     }
 
     #endregion
@@ -161,7 +183,7 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
-// this is used to add more grip in relation to speed
+    // this is used to add more grip in relation to speed
     private void AddDownForce()
     {
         foreach (var axleInfo in axleInfos)
@@ -178,8 +200,8 @@ public class PlayerController : NetworkBehaviour
             m_Rigidbody.velocity = topSpeed * m_Rigidbody.velocity.normalized;
     }
 
-// finds the corresponding visual wheel
-// correctly applies the transform
+    // finds the corresponding visual wheel
+    // correctly applies the transform
     public void ApplyLocalPositionToVisuals(WheelCollider col)
     {
         if (col.transform.childCount == 0)
@@ -203,14 +225,29 @@ public class PlayerController : NetworkBehaviour
             WheelHit[] wheelHit = new WheelHit[2];
             axleInfo.leftWheel.GetGroundHit(out wheelHit[0]);
             axleInfo.rightWheel.GetGroundHit(out wheelHit[1]);
-            foreach (var wh in wheelHit)
-            {
-                if (wh.normal == Vector3.zero)
+
+                foreach (var wh in wheelHit)
+                {
+                    if (wh.normal == Vector3.zero) //Este if detecta cuando el coche se ha chocado y no puede seguir avanzando
+                    {
+
+                            //To Do: Activar señal grafica que indique que el coche se ha ahostiado
+                            print("ME HE AHOSTIADO");
+
+                            if (Input.GetAxis("ResetCar") > 0)
+                            {
+                                transform.rotation = Quaternion.Euler(0, -90, 0);
+                                canMove = false; //Esto existe para crear una penalizacion de tiempo por darle la vuelta al coche, pero de momento funciona un poco mal
+                                StartCoroutine("RestartMovement", 1);
+                             }
+
                     return; // wheels arent on the ground so dont realign the rigidbody velocity
-            }
+                    }
+                }
+
         }
 
-// this if is needed to avoid gimbal lock problems that will make the car suddenly shift direction
+        // this if is needed to avoid gimbal lock problems that will make the car suddenly shift direction
         if (Mathf.Abs(CurrentRotation - transform.eulerAngles.y) < 10f)
         {
             var turnAdjust = (transform.eulerAngles.y - CurrentRotation) * m_SteerHelper;
@@ -220,6 +257,14 @@ public class PlayerController : NetworkBehaviour
 
         CurrentRotation = transform.eulerAngles.y;
     }
+
+    IEnumerator RestartMovement(float sec)
+    {
+        print("Corutineando");
+        yield return new WaitForSeconds(sec);
+        canMove = true;
+    }
+
 
     #endregion
 }

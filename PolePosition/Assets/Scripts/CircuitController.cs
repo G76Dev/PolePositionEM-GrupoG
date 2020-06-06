@@ -31,8 +31,9 @@ public class CircuitController : MonoBehaviour
             float length = (m_PathPos[i] - m_PathPos[i - 1]).magnitude;
             m_CumArcLength[i] = m_CumArcLength[i - 1] + length;
         }
-
+        
         m_TotalLength = m_CumArcLength[m_CumArcLength.Length - 1];
+        print("longitud: " + m_TotalLength);
     }
 
     public Vector3 GetSegment(int idx)
