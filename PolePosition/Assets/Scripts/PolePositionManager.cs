@@ -10,6 +10,8 @@ public class PolePositionManager : NetworkBehaviour
     public int numPlayers;
     public NetworkManager networkManager;
 
+    float[] arcAux;
+
     private readonly List<PlayerInfo> m_Players = new List<PlayerInfo>(4);
     private CircuitController m_CircuitController;
     private GameObject[] m_DebuggingSpheres;
@@ -18,6 +20,8 @@ public class PolePositionManager : NetworkBehaviour
     {
         if (networkManager == null) networkManager = FindObjectOfType<NetworkManager>();
         if (m_CircuitController == null) m_CircuitController = FindObjectOfType<CircuitController>();
+
+
 
         m_DebuggingSpheres = new GameObject[networkManager.maxConnections];
         for (int i = 0; i < networkManager.maxConnections; ++i)
@@ -33,11 +37,15 @@ public class PolePositionManager : NetworkBehaviour
             return;
 
         UpdateRaceProgress();
+
+        //print("vuelta  " + m_Players[0].CurrentLap); //Hay que hacer que cambie de vuelta
+
     }
 
     public void AddPlayer(PlayerInfo player)
     {
         m_Players.Add(player);
+        arcAux = new float[m_Players.Count];
     }
 
     private class PlayerInfoComparer : Comparer<PlayerInfo>
@@ -60,11 +68,29 @@ public class PolePositionManager : NetworkBehaviour
     public void UpdateRaceProgress()
     {
         // Update car arc-lengths
-        float[] arcLengths = new float[m_Players.Count];
+        float[] arcLengths = new float[m_Players.Count]; //Es MUY ineficiente que se declare un nuevo array en cada frame
 
         for (int i = 0; i < m_Players.Count; ++i)
         {
             arcLengths[i] = ComputeCarArcLength(i);
+            //print("ORIGINAL: " + i + " " +  arcLengths[i]);
+
+            //Cuando la diferencia entre la posicion anterior y la nueva sea muy grande...
+            if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) > 300) //Necesita mejoras (a veces cuenta dos vueltas, y si aumentas mucho el valor, a veces no la cuenta), pero por ahora funciona
+            {
+                print("Nuevo lap");
+                m_Players[i].CurrentLap++; //Aumenta la vuelta
+                //To Do: Evitar el cheese de dar vuelta atras en la salida y atravesar la meta
+            } 
+            else
+            {
+                if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) > 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
+                {
+                    print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                }
+            }
+            //print((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])));
+            arcAux[i] = arcLengths[i];
         }
 
         m_Players.Sort(new PlayerInfoComparer(arcLengths));
@@ -103,6 +129,8 @@ public class PolePositionManager : NetworkBehaviour
             minArcL += m_CircuitController.CircuitLength *
                        (m_Players[ID].CurrentLap - 1);
         }
+
+        //print(minArcL);
 
         return minArcL;
     }
