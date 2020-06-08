@@ -68,6 +68,8 @@ public class PlayerController : NetworkBehaviour
     {
         canMove = true;
         m_Rigidbody = GetComponent<Rigidbody>();
+
+        //Esta variable no se usa de momento
         m_PlayerInfo = GetComponent<PlayerInfo>();
     }
 

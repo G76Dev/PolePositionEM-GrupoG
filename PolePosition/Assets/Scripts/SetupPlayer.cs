@@ -2,6 +2,7 @@
 using Mirror;
 using UnityEngine;
 using Random = System.Random;
+using System.Threading;
 
 /*
 	Documentation: https://mirror-networking.com/docs/Guides/NetworkBehaviour.html
@@ -12,6 +13,7 @@ public class SetupPlayer : NetworkBehaviour
 {
     [SyncVar] private int m_ID;
     [SyncVar] private string m_Name;
+    //CountdownEvent comenzar = new CountdownEvent(2);
 
     private UIManager m_UIManager;
     private NetworkManager m_NetworkManager;
@@ -45,6 +47,10 @@ public class SetupPlayer : NetworkBehaviour
         m_PlayerInfo.ID = m_ID;
         m_PlayerInfo.Name = "Player" + m_ID;
         m_PlayerInfo.CurrentLap = 0;
+        m_PlayerInfo.CurrentPosition = 0;
+
+        //Guardamos en el playerinfo si este pertenece al jugador local o a otro. Se utiliza en el pole position para distintos aspectos.
+        m_PlayerInfo.LocalPlayer = isLocalPlayer;
         m_PolePositionManager.AddPlayer(m_PlayerInfo);
     }
 
@@ -66,7 +72,7 @@ public class SetupPlayer : NetworkBehaviour
         m_PolePositionManager = FindObjectOfType<PolePositionManager>();
         m_UIManager = FindObjectOfType<UIManager>();
         //buscamos el objeto que contenga el script de seleccion de modelo
-        m_selection = GameObject.Find("Container Car").GetComponent<CharacterSelection>();
+        m_selection = GameObject.FindGameObjectWithTag("Cars Container").GetComponent<CharacterSelection>();
     }
 
     // Start is called before the first frame update
@@ -77,17 +83,35 @@ public class SetupPlayer : NetworkBehaviour
             //usamos la funcion material que recibe el valor selection con el que establecemos el color del coche
             //la variable color se compartira entre los distintos jugadores para que se pueda ver a cada jugador del color que deseen
             color = m_selection.selection;
-            material(color);
+            Material(color);
 
             m_PlayerController.enabled = true;
             m_PlayerController.OnSpeedChangeEvent += OnSpeedChangeEventHandler;
+            m_PolePositionManager.OnPositionChangeEvent += OnPositionChangeEventHandler;
+            m_PolePositionManager.OnLapChangeEvent += OnLapChangeEventHandler;
             ConfigureCamera();
+        }
+        else
+        {
+            //Hacer que el objeto detecte el color elegido por su jugador y lo pinte.
         }
     }
 
     void OnSpeedChangeEventHandler(float speed)
     {
         m_UIManager.UpdateSpeed((int) speed * 5); // 5 for visualization purpose (km/h)
+    }
+
+    //Actualizamos el valor de la posición en la interfaz del jugador.
+    void OnPositionChangeEventHandler(int position)
+    {
+        m_UIManager.UpdatePosition(position);
+    }
+
+    //Actualizamos el valor de la vuelta actual, y el tiempo, en la interfaz del jugador.
+    void OnLapChangeEventHandler(int lap, int currentTime, int totalTime)
+    {
+        m_UIManager.UpdateLap(lap, currentTime, totalTime);
     }
 
     void ConfigureCamera()
@@ -97,7 +121,7 @@ public class SetupPlayer : NetworkBehaviour
 
     //esta funcion nos permite establecer el color del coche de acuerdo a un switch
     //la intencion es que contenga los colores lo mas parecido a los modelos que se usan dentro del juego
-    void material(int n)
+    void Material(int n)
     {
         switch (n)
         {

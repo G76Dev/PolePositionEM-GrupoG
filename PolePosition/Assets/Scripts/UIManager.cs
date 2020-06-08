@@ -47,6 +47,18 @@ public class UIManager : MonoBehaviour
         textSpeed.text = "Speed " + speed + " Km/h";
     }
 
+    public void UpdatePosition(int pos)
+    {
+        textPosition.text = "Position: " + pos;
+    }
+
+    public void UpdateLap(int lap, int currentTime, int totalTime)
+    {
+        textLaps.text = "Current lap: " + lap + "/ MAX LAPS \n"; //Cambiar MAX LAPS por una variable que almacene el numero de vueltas a recorrer. 
+        textLaps.text += "Time of this lap: " + currentTime + "\n";
+        textLaps.text += "Total time: " + totalTime;
+    }
+
     private void ActivateMainMenu()
     {
         mainMenu.SetActive(true);

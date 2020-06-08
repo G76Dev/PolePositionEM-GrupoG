@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Vehicle
   - Puppet
+  - Cars Container
   layers:
   - Default
   - TransparentFX

@@ -16,6 +16,9 @@ public class PlayerInfo : MonoBehaviour
     // Almacenamos el valor de la seleccion de color de cada jugador
     public int ModelCar { get; set; }
 
+    //Booleano que indica si es el jugador local.
+    public bool LocalPlayer { get; set; }
+
     public override string ToString()
     {
         return Name;

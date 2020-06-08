@@ -16,6 +16,19 @@ public class PolePositionManager : NetworkBehaviour
     private CircuitController m_CircuitController;//controlador del circuito
     private GameObject[] m_DebuggingSpheres;//esfera para uso en el debug
 
+    private float tempTime = 0;
+    private float totalTime = 0;
+
+    //Delegado para la actualización de la posición en la interfaz.
+    public delegate void OnPositionChangeDelegate(int newVal);
+
+    public event OnPositionChangeDelegate OnPositionChangeEvent;
+
+    //Delegado para la actualización de las vueltas y el tiempo en la interfaz.
+    public delegate void OnLapChangeDelegate(int newVal, int newVal2, int newVal3);
+
+    public event OnLapChangeDelegate OnLapChangeEvent;
+
     private void Awake()
     {
         if (networkManager == null) networkManager = FindObjectOfType<NetworkManager>();//duda
@@ -37,6 +50,7 @@ public class PolePositionManager : NetworkBehaviour
             return;
 
         UpdateRaceProgress();
+
 
         //print("vuelta  " + m_Players[0].CurrentLap); //Hay que hacer que cambie de vuelta
 
@@ -73,14 +87,29 @@ public class PolePositionManager : NetworkBehaviour
 
         for (int i = 0; i < m_Players.Count; ++i)
         {
+            //Si el jugador es local, se actualizan los tiempos.
+            if (m_Players[i].LocalPlayer)
+            {
+                tempTime += Time.deltaTime;
+                totalTime += Time.deltaTime;
+            }
+
             arcLengths[i] = ComputeCarArcLength(i);
             //print("ORIGINAL: " + i + " " +  arcLengths[i]);
+            if (m_Players[i].LocalPlayer && OnLapChangeEvent != null)
+            {
+                OnLapChangeEvent(m_Players[i].CurrentLap, (int)tempTime, (int)(totalTime));
+            }
 
             //Cuando la diferencia entre la posicion anterior y la nueva sea muy grande...
             if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) > 300) //Necesita mejoras (a veces cuenta dos vueltas, y si aumentas mucho el valor, a veces no la cuenta), pero por ahora funciona
             {
-                print("Nuevo lap");
-                m_Players[i].CurrentLap++; //Aumenta la vuelta
+                print("Nuevo lap, vamos por la: " + m_Players[i].CurrentLap + 1);
+                m_Players[i].CurrentLap++; //Aumenta la vuelta (o eso se supone, porque a mi (Nacho) esta cosa no se me activa nunca salvo la primera pasada)
+                //Posible implementacion con un collider.
+
+                //Al cambiar de vuelta el tiempo de la vuelta se reinicia.
+                tempTime = 0;              
                 //To Do: Evitar el cheese de dar vuelta atras en la salida y atravesar la meta
             } 
             else
@@ -97,10 +126,28 @@ public class PolePositionManager : NetworkBehaviour
         m_Players.Sort(new PlayerInfoComparer(arcLengths));
 
         string myRaceOrder = "";
+        int cont = 1;
         foreach (var _player in m_Players)
         {
-            myRaceOrder += _player.Name + " ";
+            if (_player.CurrentPosition != cont)
+            {
+                _player.CurrentPosition = cont;
+                if (_player.LocalPlayer && OnPositionChangeEvent != null)
+                {
+                    OnPositionChangeEvent((_player.CurrentPosition));
+                }
+            }
+            myRaceOrder += _player.Name + " ";         
+
+            cont++;
         }
+
+        //Con esto se llamaría al evento para actualizar la posición. Falta saber quien es el jugador local para poner su posicion en lugar de la de otro
+        //if(OnPositionChangeEvent != null)
+        //{
+            
+        //}
+
 
         Debug.Log("El orden de carrera es: " + myRaceOrder + "\n" );
     }
