@@ -13,6 +13,9 @@ public class PlayerInfo : MonoBehaviour
 
     public int CurrentLap { get; set; }
 
+    // Almacenamos el valor de la seleccion de color de cada jugador
+    public int ModelCar { get; set; }
+
     public override string ToString()
     {
         return Name;

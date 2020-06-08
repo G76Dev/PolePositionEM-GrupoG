@@ -18,6 +18,9 @@ public class SetupPlayer : NetworkBehaviour
     private PlayerController m_PlayerController;
     private PlayerInfo m_PlayerInfo;
     private PolePositionManager m_PolePositionManager;
+    //almacenamos el script de selecion del modelo del coche
+    private CharacterSelection m_selection;
+    private int color;
 
     #region Start & Stop Callbacks
 
@@ -62,6 +65,8 @@ public class SetupPlayer : NetworkBehaviour
         m_NetworkManager = FindObjectOfType<NetworkManager>();
         m_PolePositionManager = FindObjectOfType<PolePositionManager>();
         m_UIManager = FindObjectOfType<UIManager>();
+        //buscamos el objeto que contenga el script de seleccion de modelo
+        m_selection = GameObject.Find("Container Car").GetComponent<CharacterSelection>();
     }
 
     // Start is called before the first frame update
@@ -69,6 +74,11 @@ public class SetupPlayer : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
+            //usamos la funcion material que recibe el valor selection con el que establecemos el color del coche
+            //la variable color se compartira entre los distintos jugadores para que se pueda ver a cada jugador del color que deseen
+            color = m_selection.selection;
+            material(color);
+
             m_PlayerController.enabled = true;
             m_PlayerController.OnSpeedChangeEvent += OnSpeedChangeEventHandler;
             ConfigureCamera();
@@ -83,5 +93,27 @@ public class SetupPlayer : NetworkBehaviour
     void ConfigureCamera()
     {
         if (Camera.main != null) Camera.main.gameObject.GetComponent<CameraController>().m_Focus = this.gameObject;
+    }
+
+    //esta funcion nos permite establecer el color del coche de acuerdo a un switch
+    //la intencion es que contenga los colores lo mas parecido a los modelos que se usan dentro del juego
+    void material(int n)
+    {
+        switch (n)
+        {
+            case 0:
+                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.red;
+                break;
+            case 1:
+                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.white;
+                break;
+            case 2:
+                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.yellow;
+                break;
+            default:
+                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.green;
+                break;
+        }
+        
     }
 }
