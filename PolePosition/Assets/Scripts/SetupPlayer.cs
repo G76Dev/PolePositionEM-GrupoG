@@ -60,6 +60,16 @@ public class SetupPlayer : NetworkBehaviour
     /// </summary>
     public override void OnStartLocalPlayer()
     {
+        //Tambien se podría usar un countdown tradicional pero no se como comunicar estas clases y sus componentes como si fuesen hilos distintos.
+        //Si se pudiera, bastaría con hacer aquí un countdown.signal(), y que haya un countdownEvent con tantas señales como jugadores en PolePosition que haga un
+        //wait() para que no comience la carrera hasta que cada cliente de su señal.
+
+
+        if (m_NetworkManager.isNetworkActive) //Si el cliente está listo para empezar
+        {
+            m_PlayerInfo.Ready = true; //Lo notifica
+        }
+
     }
 
     #endregion

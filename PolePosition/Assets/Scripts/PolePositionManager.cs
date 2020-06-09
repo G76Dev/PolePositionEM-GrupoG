@@ -3,11 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using Mirror;
+using Mirror.Examples.Basic;
 using UnityEngine;
 
 public class PolePositionManager : NetworkBehaviour
 {
     public int numPlayers;//numero de jugadores
+    public int playersReady;
     public NetworkManager networkManager;//controlador de la conexion
 
     float[] arcAux;
@@ -49,7 +51,32 @@ public class PolePositionManager : NetworkBehaviour
         if (m_Players.Count == 0)
             return;
 
-        UpdateRaceProgress();
+        //Este if comprueba que todos los jugadores esten listos. Si no lo estan, deshace la cuenta y en el siguiente frame vuelve a comprobar si estan todos.
+        //Cuando ya esten todos listos, se ignora la comprobacion y se comienza la carrera.
+        //Esto probablemente no deba ir en el update y de hecho no es más que pseudocodigo
+        if(playersReady < numPlayers)
+        {
+            foreach(var player in m_Players)
+            {
+                if (player.Ready)
+                    playersReady++;
+            }
+
+            if(playersReady < numPlayers)
+            {
+                playersReady = 0;
+            } 
+            else
+            {
+                return;
+            }
+        } else
+        {
+            UpdateRaceProgress();
+        }
+
+
+
 
 
         //print("vuelta  " + m_Players[0].CurrentLap); //Hay que hacer que cambie de vuelta

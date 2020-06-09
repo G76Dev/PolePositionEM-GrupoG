@@ -19,6 +19,8 @@ public class PlayerInfo : MonoBehaviour
     //Booleano que indica si es el jugador local.
     public bool LocalPlayer { get; set; }
 
+    public bool Ready { get; set; } //deberia ser syncvar
+
     public override string ToString()
     {
         return Name;
