@@ -93,17 +93,35 @@ public class PolePositionManager : NetworkBehaviour
     private class PlayerInfoComparer : Comparer<PlayerInfo>
     {
         float[] m_ArcLengths;
+        List<PlayerInfo> players;
 
-        public PlayerInfoComparer(float[] arcLengths)
+        public PlayerInfoComparer(float[] arcLengths, List<PlayerInfo> par_players)
         {
             m_ArcLengths = arcLengths;
+            players = par_players;
         }
 
         public override int Compare(PlayerInfo x, PlayerInfo y)
         {
-            if (this.m_ArcLengths[x.ID] < m_ArcLengths[y.ID])
+            if (this.m_ArcLengths[GetIndex(x)] < m_ArcLengths[GetIndex(y)])
                 return 1;
             else return -1;
+        }
+
+        //Método que recibe un player info, y devuelve su índice en la lista de playerinfos.
+        //Esto es importante porque la posición de cada player info varía en cada iteración si un jugador adelanta a otro, por lo que usar el id para saber la posición en la lista
+        //de un player info como se hacía al principio terminaría dando errores y no detectando bien quien va delante de quien.
+        public int GetIndex(PlayerInfo pi)
+        {
+            int index = -1;
+            for (int i = 0; i < players.Count; i++)
+            {
+                if (pi.Equals(players[i]))
+                {
+                    index = i;
+                }
+            }
+            return index;
         }
     }
 
@@ -150,7 +168,7 @@ public class PolePositionManager : NetworkBehaviour
             arcAux[i] = arcLengths[i];
         }
 
-        m_Players.Sort(new PlayerInfoComparer(arcLengths));
+        m_Players.Sort(new PlayerInfoComparer(arcLengths, m_Players));
 
         string myRaceOrder = "";
         int cont = 1;
