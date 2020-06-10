@@ -9,8 +9,10 @@ using UnityEngine;
 public class PolePositionManager : NetworkBehaviour
 {
     public int numPlayers;//numero de jugadores
-    public int playersReady;
+    [SyncVar] public int playersReady;
     public NetworkManager networkManager;//controlador de la conexion
+    private UIManager m_UImanager;
+    public SetupPlayer setupPlayer;
 
     float[] arcAux;
 
@@ -20,6 +22,13 @@ public class PolePositionManager : NetworkBehaviour
 
     private float tempTime = 0;
     private float totalTime = 0;
+    public bool ignoreAuthority;
+
+
+    //Delegado para sincronizar el comienzo de la partida
+    public delegate void SyncStart();
+
+    public event SyncStart StartRaceEvent;
 
     //Delegado para la actualización de la posición en la interfaz.
     public delegate void OnPositionChangeDelegate(int newVal);
@@ -36,6 +45,7 @@ public class PolePositionManager : NetworkBehaviour
         if (networkManager == null) networkManager = FindObjectOfType<NetworkManager>();//duda
         if (m_CircuitController == null) m_CircuitController = FindObjectOfType<CircuitController>();//duda
 
+        m_UImanager = FindObjectOfType<UIManager>();
 
 
         m_DebuggingSpheres = new GameObject[networkManager.maxConnections];
@@ -46,40 +56,48 @@ public class PolePositionManager : NetworkBehaviour
         }
     }
 
+    private void Start()
+    {
+        m_UImanager.PlayerReadyEvent += ManageStart; //Suscribe al evento que lanza el botón de "Ready" el proceso que se encarga de llamar al Command correspondiente
+    }
+    //GetComponent<NetworkIdentity>().AssignClientAuthority(this.GetComponent<NetworkIdentity>().connectionToClient);
+    //Esta linea se usa en caso de que un command no funcione, pero teoricamente nunca es necesaria
+
+    void ManageStart()
+    {
+        setupPlayer.CmdPlayerReady(); //Llama al Command en setupPlayer que se encargará de llamar a "RpcManageStart" en este script
+    }
+
+    //Esta llamada Rpc a todos los clientes se ejecuta en este script porque este objeto es único en el juego. Si se ejecutase desde playerController cada cliente
+    //actualizaría solamente el booleano del jugador cuyo playerController lanzó la llamada Rpc. Para que se actualice como es debido, se le llama desde aquí
+    //utilizando a su vez un comando en setupPlayer que llama a esta llamada Rpc, que en cada cliente actualizará el valor local del jugador de ese cliente
+    //mediante referencia directa de componentes.
+    [ClientRpc]
+    public void RpcStartRace()
+    {
+        setupPlayer.m_PlayerController.canMove = true; //Actualiza el bool canMove en el playerController del jugador de este cliente, gracias a que el PolePositionManager de cada cliente guarda una referencia al jugador local de ese cliente
+    }
+
+    //Esta llamada Rpc está en este lugar por el mismo motivo de la anterior
+    [ClientRpc]
+    public void RpcManageStart()
+    {
+        playersReady++; //Suma un jugador listo
+        print("JUGADORES LISTOS: " + playersReady);
+
+        if (playersReady >= numPlayers) //Si los jugadores preparados igualan o superan a la cantidad de jugadores,
+        {
+            if (isServer) //Si es el servidor
+                setupPlayer.CmdStartRace(); //Llama al Command que más tarde llamará al RpcStartRace de este script
+        }
+    }
+
     private void Update()
     {
         if (m_Players.Count == 0)
             return;
 
-        //Este if comprueba que todos los jugadores esten listos. Si no lo estan, deshace la cuenta y en el siguiente frame vuelve a comprobar si estan todos.
-        //Cuando ya esten todos listos, se ignora la comprobacion y se comienza la carrera.
-        //Esto probablemente no deba ir en el update y de hecho no es más que pseudocodigo
-        if(playersReady < numPlayers)
-        {
-            foreach(var player in m_Players)
-            {
-                if (player.Ready)
-                    playersReady++;
-            }
-
-            if(playersReady < numPlayers)
-            {
-                playersReady = 0;
-            } 
-            else
-            {
-                return;
-            }
-        } else
-        {
             UpdateRaceProgress();
-        }
-
-
-
-
-
-        //print("vuelta  " + m_Players[0].CurrentLap); //Hay que hacer que cambie de vuelta
 
     }
 

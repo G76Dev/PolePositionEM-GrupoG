@@ -27,7 +27,8 @@ public class PlayerController : NetworkBehaviour
     public float downForce = 100f;
     public float slipLimit = 0.2f;
 
-    public bool canMove = true; //Decide si el jugador puede moverse
+    [SyncVar] public bool canMove = false; //Decide si el jugador puede moverse
+    //Comienza a false a la espera de que RpcStart le permita moverse
     public float crashTimer = 0;
 
     private float CurrentRotation { get; set; }
@@ -36,6 +37,8 @@ public class PlayerController : NetworkBehaviour
     private float InputBrake { get; set; }
 
     private PlayerInfo m_PlayerInfo;
+    private SetupPlayer m_setupPlayer;
+    private PolePositionManager m_PoleManager;
 
     private Rigidbody m_Rigidbody;
     private float m_SteerHelper = 0.8f;
@@ -66,11 +69,18 @@ public class PlayerController : NetworkBehaviour
 
     public void Awake()
     {
-        canMove = true;
         m_Rigidbody = GetComponent<Rigidbody>();
+        m_PoleManager = FindObjectOfType<PolePositionManager>();
+        m_setupPlayer = GetComponent<SetupPlayer>();
 
         //Esta variable no se usa de momento
         m_PlayerInfo = GetComponent<PlayerInfo>();
+    }
+
+    private void Start()
+    {
+        m_PoleManager.StartRaceEvent += CmdStart;
+
     }
 
     public void Update()
@@ -220,6 +230,20 @@ public class PlayerController : NetworkBehaviour
         myTransform.rotation = rotation;
     }
 
+
+    //Se le llama cuando la carrera comienza, enviando a todos los clientes el permiso para moverse.
+    [ClientRpc]
+    void RpcStart()
+    {
+        canMove = true;
+    }
+
+    [Command]
+    void CmdStart()
+    {
+        RpcStart();
+    }
+
     private void SteerHelper()
     {
         foreach (var axleInfo in axleInfos)
@@ -232,7 +256,7 @@ public class PlayerController : NetworkBehaviour
                 {
                     if (wh.normal == Vector3.zero) //Este if detecta cuando el coche se ha chocado y no puede seguir avanzando
                     {
-
+                        
                             //To Do: Activar señal grafica que indique que el coche se ha ahostiado
                             print("ME HE AHOSTIADO");
 

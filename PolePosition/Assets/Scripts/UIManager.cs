@@ -25,9 +25,16 @@ public class UIManager : MonoBehaviour
     [Header("In-Game HUD")] [SerializeField]
     private GameObject inGameHUD;
 
+    [SerializeField] private Button readyButton;
     [SerializeField] private Text textSpeed;
     [SerializeField] private Text textLaps;
     [SerializeField] private Text textPosition;
+
+    //Delegate events
+    public delegate void SyncStart();
+
+    public event SyncStart PlayerReadyEvent;
+
 
     private void Awake()
     {
@@ -39,6 +46,7 @@ public class UIManager : MonoBehaviour
         buttonHost.onClick.AddListener(() => StartHost());
         buttonClient.onClick.AddListener(() => StartClient());
         buttonServer.onClick.AddListener(() => StartServer());
+        readyButton.onClick.AddListener(() => playerIsReady());
         ActivateMainMenu();
     }
 
@@ -63,6 +71,14 @@ public class UIManager : MonoBehaviour
     {
         mainMenu.SetActive(true);
         inGameHUD.SetActive(false);
+    }
+
+    private void playerIsReady()
+    {
+        if(PlayerReadyEvent != null)
+        {
+            PlayerReadyEvent();
+        }
     }
 
     private void ActivateInGameHUD()
