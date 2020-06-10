@@ -13,7 +13,7 @@ using System.Threading;
 public class SetupPlayer : NetworkBehaviour
 {
     [SyncVar] private int m_ID;
-    [SyncVar] private string m_Name;
+    [SyncVar(hook = nameof(SetNombre))] private string m_Name;
     //CountdownEvent comenzar = new CountdownEvent(2);
 
     private UIManager m_UIManager;
@@ -24,7 +24,7 @@ public class SetupPlayer : NetworkBehaviour
     private PolePositionManager m_PolePositionManager;
     //almacenamos el script de selecion del modelo del coche
     private CharacterSelection m_selection;
-    private int color;
+    [SyncVar(hook = nameof(SetColor))] private int color;
 
 
 
@@ -38,7 +38,7 @@ public class SetupPlayer : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
-        m_ID = connectionToClient.connectionId;
+        m_ID = connectionToClient.connectionId;      
     }
 
     /// <summary>
@@ -48,10 +48,13 @@ public class SetupPlayer : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
+
         m_PlayerInfo.ID = m_ID;
-        m_PlayerInfo.Name = "Player" + m_ID;
+        m_PlayerInfo.Name = "Player " + m_ID + " : " + m_Name;
         m_PlayerInfo.CurrentLap = 0;
         m_PlayerInfo.CurrentPosition = 0;
+
+        Material(color);
 
         //Guardamos en el playerinfo si este pertenece al jugador local o a otro. Se utiliza en el pole position para distintos aspectos.
         m_PlayerInfo.LocalPlayer = isLocalPlayer;
@@ -94,8 +97,8 @@ public class SetupPlayer : NetworkBehaviour
         //Tambien se podría usar un countdown tradicional pero no se como comunicar estas clases y sus componentes como si fuesen hilos distintos.
         //Si se pudiera, bastaría con hacer aquí un countdown.signal(), y que haya un countdownEvent con tantas señales como jugadores en PolePosition que haga un
         //wait() para que no comience la carrera hasta que cada cliente de su señal.
-
-
+        CmdSaveColor(m_selection.selection);
+        CmdSaveNombre(m_UIManager.userName);
         if (m_NetworkManager.isNetworkActive) //Si el cliente está listo para empezar
         {
             //Nothing
@@ -123,19 +126,13 @@ public class SetupPlayer : NetworkBehaviour
         if (isLocalPlayer)
         {
             //usamos la funcion material que recibe el valor selection con el que establecemos el color del coche
-            //la variable color se compartira entre los distintos jugadores para que se pueda ver a cada jugador del color que deseen
-            color = m_selection.selection;
-            Material(color);
+            //la variable color se compartira entre los distintos jugadores para que se pueda ver a cada jugador del color que deseen           
 
             m_PlayerController.enabled = true;
             m_PlayerController.OnSpeedChangeEvent += OnSpeedChangeEventHandler;
             m_PolePositionManager.OnPositionChangeEvent += OnPositionChangeEventHandler;
             m_PolePositionManager.OnLapChangeEvent += OnLapChangeEventHandler;
             ConfigureCamera();
-        }
-        else
-        {
-            //Hacer que el objeto detecte el color elegido por su jugador y lo pinte.
         }
     }
 
@@ -190,5 +187,30 @@ public class SetupPlayer : NetworkBehaviour
                 break;
         }
         
+    }
+
+    //Función que se ejecuta en el servidor para actualizar el valor de la variable del color.
+    [Command]
+    void CmdSaveColor(int colorNuevo)
+    {
+        color = colorNuevo;
+    }
+
+    //Función que se ejecuta en el servidor para actualizar el valor de la variable del nombre.
+    [Command]
+    void CmdSaveNombre(string nombre)
+    {
+        m_Name = nombre;
+    }
+    //Función que se ejecuta cuando cambia el valor de la variable color. Actualiza el color del coche con el color nuevo.
+    void SetColor(int oldColor, int newColor)
+    {
+        Material(newColor);
+    }
+
+    //Función que se ejecuta cuando cambia el valor de la variable m_Name. Actualiza el nombre del jugador con el nombre nuevo.
+    void SetNombre(string antiguoNombre, string nuevoNombre)
+    {
+        m_PlayerInfo.Name = "Player " + m_ID + " : " + nuevoNombre;
     }
 }
