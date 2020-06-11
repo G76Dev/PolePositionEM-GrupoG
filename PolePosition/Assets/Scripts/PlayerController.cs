@@ -100,6 +100,7 @@ public class PlayerController : NetworkBehaviour
         else
         {
             Speed = 0;
+            m_Rigidbody.velocity = Vector3.zero;
             InputAcceleration = 0;
             InputSteering = 0;
             InputBrake = 0;
@@ -192,6 +193,22 @@ public class PlayerController : NetworkBehaviour
                 var howMuchSlip = (wheelHitRight.forwardSlip - slipLimit) / (1 - slipLimit);
                 axleInfo.rightWheel.motorTorque -= axleInfo.rightWheel.motorTorque * howMuchSlip * slipLimit;
             }
+
+
+            if (Speed > 0.3f)
+            {
+                WheelFrictionCurve aux = axleInfo.leftWheel.sidewaysFriction;
+                aux.extremumSlip = 0.2f;
+                axleInfo.rightWheel.sidewaysFriction = aux;
+                axleInfo.leftWheel.sidewaysFriction = aux;
+            }
+            else
+            {
+                WheelFrictionCurve aux = axleInfo.leftWheel.sidewaysFriction;
+                aux.extremumSlip = 0.4f;
+                axleInfo.rightWheel.sidewaysFriction = aux;
+                axleInfo.leftWheel.sidewaysFriction = aux;
+            }             
         }
     }
 

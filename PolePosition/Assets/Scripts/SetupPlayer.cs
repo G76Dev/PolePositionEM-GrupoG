@@ -22,11 +22,10 @@ public class SetupPlayer : NetworkBehaviour
     private UIManager m_UImanager;
     private PlayerInfo m_PlayerInfo;
     private PolePositionManager m_PolePositionManager;
+
     //almacenamos el script de selecion del modelo del coche
     private CharacterSelection m_selection;
     [SyncVar(hook = nameof(SetColor))] private int color;
-
-
 
     #region Start & Stop Callbacks
 
@@ -202,6 +201,7 @@ public class SetupPlayer : NetworkBehaviour
     {
         m_Name = nombre;
     }
+
     //Función que se ejecuta cuando cambia el valor de la variable color. Actualiza el color del coche con el color nuevo.
     void SetColor(int oldColor, int newColor)
     {
