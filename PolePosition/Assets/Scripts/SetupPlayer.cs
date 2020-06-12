@@ -19,6 +19,7 @@ public class SetupPlayer : NetworkBehaviour
     private UIManager m_UIManager;
     private NetworkManager m_NetworkManager;
     public PlayerController m_PlayerController;
+    private CheckpointController m_checkPointController;
     private UIManager m_UImanager;
     private PlayerInfo m_PlayerInfo;
     private PolePositionManager m_PolePositionManager;
@@ -60,30 +61,24 @@ public class SetupPlayer : NetworkBehaviour
 
         if(isLocalPlayer)
         {
+            //Asignar los scripts locales del jugador que controla este cliente
             m_PolePositionManager.setupPlayer = this;
+            m_PolePositionManager.mirrorManager = GetComponent<MirrorManager>();
+            m_PolePositionManager.playerController = GetComponent<PlayerController>();
+
+            //Asignar los correspondientes eventos a sus llamadas
+            m_PolePositionManager.StartRaceEvent += m_UIManager.HideReadyButton;
+            m_checkPointController.changeLapEvent += m_PolePositionManager.resetLapTime;
         }
 
         //Añade el jugador a la lista en todos los clientes y servidor
-        RpcAddPlayer();
+        m_PolePositionManager.numPlayers++;
+        m_PolePositionManager.AddPlayer(m_PlayerInfo);
+        print("JUGADOR AÑADIDO. JUGADORES ACTUALIZADOS: " + m_PolePositionManager.numPlayers);
 
     }
 
-    //Los commands se ejecutan aquí porque solamente los scripts asociados al prefab del jugador pueden enviar mensajes Command al servidor en esta version de Mirror.
-    //Para poder hacerlo desde otros scripts, esos scripts contendrán una referencia directa al SetupPlayer del jugador local de ese cliente/servidor,
-    //y desde aquí ejecutarán el comando necesario utilizando la referencia directa a este script.
 
-    [Command]
-    public void CmdStartRace()
-    {
-        print("Hola soy un COMMAND");
-        m_PolePositionManager.RpcStartRace();
-    }
-
-    [Command]
-    public void CmdPlayerReady()
-    {
-        m_PolePositionManager.RpcManageStart();
-    }
 
 
 
@@ -114,6 +109,7 @@ public class SetupPlayer : NetworkBehaviour
         m_NetworkManager = FindObjectOfType<NetworkManager>();
         m_UImanager = FindObjectOfType<UIManager>();
         m_PolePositionManager = FindObjectOfType<PolePositionManager>();
+        m_checkPointController = GetComponent<CheckpointController>();
         m_UIManager = FindObjectOfType<UIManager>();
         //buscamos el objeto que contenga el script de seleccion de modelo
         m_selection = GameObject.FindGameObjectWithTag("Cars Container").GetComponent<CharacterSelection>();
@@ -130,7 +126,7 @@ public class SetupPlayer : NetworkBehaviour
             m_PlayerController.enabled = true;
             m_PlayerController.OnSpeedChangeEvent += OnSpeedChangeEventHandler;
             m_PolePositionManager.OnPositionChangeEvent += OnPositionChangeEventHandler;
-            m_PolePositionManager.OnLapChangeEvent += OnLapChangeEventHandler;
+            m_PolePositionManager.updateTime += OnLapChangeEventHandler;
             ConfigureCamera();
         }
     }
@@ -158,13 +154,6 @@ public class SetupPlayer : NetworkBehaviour
     }
 
 
-    [ClientRpc]
-    void RpcAddPlayer()
-    {
-        m_PolePositionManager.numPlayers++;
-        m_PolePositionManager.AddPlayer(m_PlayerInfo);
-        print("JUGADOR AÑADIDO. JUGADORES ACTUALIZADOS: " + m_PolePositionManager.numPlayers);
-    }
 
     //esta funcion nos permite establecer el color del coche de acuerdo a un switch
     //la intencion es que contenga los colores lo mas parecido a los modelos que se usan dentro del juego

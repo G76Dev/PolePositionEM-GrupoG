@@ -13,6 +13,9 @@ public class PolePositionManager : NetworkBehaviour
     public NetworkManager networkManager;//controlador de la conexion
     private UIManager m_UImanager;
     public SetupPlayer setupPlayer;
+    public PlayerController playerController;
+    public MirrorManager mirrorManager;
+    public GameObject checkPointList;
 
     float[] arcAux;
 
@@ -38,7 +41,7 @@ public class PolePositionManager : NetworkBehaviour
     //Delegado para la actualización de las vueltas y el tiempo en la interfaz.
     public delegate void OnLapChangeDelegate(int newVal, int newVal2, int newVal3);
 
-    public event OnLapChangeDelegate OnLapChangeEvent;
+    public event OnLapChangeDelegate updateTime;
 
     private void Awake()
     {
@@ -59,14 +62,21 @@ public class PolePositionManager : NetworkBehaviour
     private void Start()
     {
         m_UImanager.PlayerReadyEvent += ManageStart; //Suscribe al evento que lanza el botón de "Ready" el proceso que se encarga de llamar al Command correspondiente
+
     }
     //GetComponent<NetworkIdentity>().AssignClientAuthority(this.GetComponent<NetworkIdentity>().connectionToClient);
     //Esta linea se usa en caso de que un command no funcione, pero teoricamente nunca es necesaria
 
     void ManageStart()
     {
-        setupPlayer.CmdPlayerReady(); //Llama al Command en setupPlayer que se encargará de llamar a "RpcManageStart" en este script
+        mirrorManager.CmdPlayerReady(); //Llama al Command en setupPlayer que se encargará de llamar a "RpcManageStart" en este script
     }
+
+    #region RPC Calls
+
+    //-------------------------
+    //LLAMADAS RPC
+    //-------------------------
 
     //Esta llamada Rpc a todos los clientes se ejecuta en este script porque este objeto es único en el juego. Si se ejecutase desde playerController cada cliente
     //actualizaría solamente el booleano del jugador cuyo playerController lanzó la llamada Rpc. Para que se actualice como es debido, se le llama desde aquí
@@ -75,7 +85,11 @@ public class PolePositionManager : NetworkBehaviour
     [ClientRpc]
     public void RpcStartRace()
     {
+
         setupPlayer.m_PlayerController.canMove = true; //Actualiza el bool canMove en el playerController del jugador de este cliente, gracias a que el PolePositionManager de cada cliente guarda una referencia al jugador local de ese cliente
+
+        if(StartRaceEvent != null)
+            StartRaceEvent();
     }
 
     //Esta llamada Rpc está en este lugar por el mismo motivo de la anterior
@@ -83,14 +97,16 @@ public class PolePositionManager : NetworkBehaviour
     public void RpcManageStart()
     {
         playersReady++; //Suma un jugador listo
-        print("JUGADORES LISTOS: " + playersReady);
+        //print("JUGADORES LISTOS: " + playersReady);
 
         if (playersReady >= numPlayers) //Si los jugadores preparados igualan o superan a la cantidad de jugadores,
         {
             if (isServer) //Si es el servidor
-                setupPlayer.CmdStartRace(); //Llama al Command que más tarde llamará al RpcStartRace de este script
+                mirrorManager.CmdStartRace(); //Llama al Command que más tarde llamará al RpcStartRace de este script
         }
     }
+
+    #endregion
 
     private void Update()
     {
@@ -159,29 +175,31 @@ public class PolePositionManager : NetworkBehaviour
 
             arcLengths[i] = ComputeCarArcLength(i);
             //print("ORIGINAL: " + i + " " +  arcLengths[i]);
-            if (m_Players[i].LocalPlayer && OnLapChangeEvent != null)
+            if (m_Players[i].LocalPlayer && updateTime != null)
             {
-                OnLapChangeEvent(m_Players[i].CurrentLap, (int)tempTime, (int)(totalTime));
+                updateTime(m_Players[i].CurrentLap, (int)tempTime, (int)(totalTime));
             }
 
-            //Cuando la diferencia entre la posicion anterior y la nueva sea muy grande...
-            if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) > 300) //Necesita mejoras (a veces cuenta dos vueltas, y si aumentas mucho el valor, a veces no la cuenta), pero por ahora funciona
-            {
-                print("Nuevo lap, vamos por la: " + m_Players[i].CurrentLap + 1);
-                m_Players[i].CurrentLap++; //Aumenta la vuelta (o eso se supone, porque a mi (Nacho) esta cosa no se me activa nunca salvo la primera pasada)
-                //Posible implementacion con un collider.
 
-                //Al cambiar de vuelta el tiempo de la vuelta se reinicia.
-                tempTime = 0;              
-                //To Do: Evitar el cheese de dar vuelta atras en la salida y atravesar la meta
-            } 
-            else
+            if (this.m_Players[i].CurrentLap == 0)
             {
+                //Si el valor es positivo en la vuelta 0...
                 if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) > 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
                 {
                     print("El jugador " + m_Players[i].ID + " va hacia atrás");
                 }
             }
+            else
+            {
+                //En el resto de vueltas, un valor negativo indicará que el jugador va hacia atrás, como es normal.
+                if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) < 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
+                {
+                    print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                }
+            }
+
+
+            
             //print((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])));
             arcAux[i] = arcLengths[i];
         }
@@ -215,6 +233,11 @@ public class PolePositionManager : NetworkBehaviour
         Debug.Log("El orden de carrera es: " + myRaceOrder + "\n" );
     }
 
+    public void resetLapTime()
+    {
+        tempTime = 0;
+    }
+
     float ComputeCarArcLength(int ID)
     {
         // Compute the projection of the car position to the closest circuit 
@@ -245,4 +268,6 @@ public class PolePositionManager : NetworkBehaviour
 
         return minArcL;
     }
+
+    
 }

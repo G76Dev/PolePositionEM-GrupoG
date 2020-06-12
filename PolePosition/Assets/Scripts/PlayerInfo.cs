@@ -21,6 +21,11 @@ public class PlayerInfo : MonoBehaviour
 
     public bool Ready { get; set; } //deberia ser syncvar
 
+    public int CheckPoint { get; set; }
+
+    public int checkpointCount { get; set; }
+
+
     public override string ToString()
     {
         return Name;

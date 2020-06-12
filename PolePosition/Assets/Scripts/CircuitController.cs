@@ -33,7 +33,7 @@ public class CircuitController : MonoBehaviour
         }
         
         m_TotalLength = m_CumArcLength[m_CumArcLength.Length - 1];
-        print("longitud: " + m_TotalLength);
+        //print("longitud: " + m_TotalLength);
     }
 
     public Vector3 GetSegment(int idx)

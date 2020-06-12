@@ -37,8 +37,8 @@ public class PlayerController : NetworkBehaviour
     private float InputBrake { get; set; }
 
     private PlayerInfo m_PlayerInfo;
-    private SetupPlayer m_setupPlayer;
     private PolePositionManager m_PoleManager;
+
 
     private Rigidbody m_Rigidbody;
     private float m_SteerHelper = 0.8f;
@@ -71,15 +71,15 @@ public class PlayerController : NetworkBehaviour
     {
         m_Rigidbody = GetComponent<Rigidbody>();
         m_PoleManager = FindObjectOfType<PolePositionManager>();
-        m_setupPlayer = GetComponent<SetupPlayer>();
 
         //Esta variable no se usa de momento
         m_PlayerInfo = GetComponent<PlayerInfo>();
+        m_PlayerInfo.checkpointCount = 0;
+        
     }
 
     private void Start()
     {
-        m_PoleManager.StartRaceEvent += CmdStart;
 
     }
 
@@ -248,19 +248,6 @@ public class PlayerController : NetworkBehaviour
     }
 
 
-    //Se le llama cuando la carrera comienza, enviando a todos los clientes el permiso para moverse.
-    [ClientRpc]
-    void RpcStart()
-    {
-        canMove = true;
-    }
-
-    [Command]
-    void CmdStart()
-    {
-        RpcStart();
-    }
-
     private void SteerHelper()
     {
         foreach (var axleInfo in axleInfos)
@@ -275,7 +262,7 @@ public class PlayerController : NetworkBehaviour
                     {
                         
                             //To Do: Activar señal grafica que indique que el coche se ha ahostiado
-                            print("ME HE AHOSTIADO");
+                            //print("ME HE AHOSTIADO");
 
                             if (Input.GetAxis("ResetCar") > 0)
                             {
