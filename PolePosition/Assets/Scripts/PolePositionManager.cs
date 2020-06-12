@@ -9,13 +9,16 @@ using UnityEngine;
 public class PolePositionManager : NetworkBehaviour
 {
     public int numPlayers;//numero de jugadores
-    [SyncVar] public int playersReady;
+    [SyncVar] [HideInInspector] int playersReady;
+    public int totalLaps = 3;
+
     public NetworkManager networkManager;//controlador de la conexion
     private UIManager m_UImanager;
     public SetupPlayer setupPlayer;
     public PlayerController playerController;
     public MirrorManager mirrorManager;
     public GameObject checkPointList;
+    public GameObject postGameBackground;
 
     float[] arcAux;
 
@@ -25,7 +28,7 @@ public class PolePositionManager : NetworkBehaviour
 
     private float tempTime = 0;
     private float totalTime = 0;
-    public bool ignoreAuthority;
+    
 
 
     //Delegado para sincronizar el comienzo de la partida
@@ -122,6 +125,12 @@ public class PolePositionManager : NetworkBehaviour
     {
         m_Players.Add(player);
         arcAux = new float[m_Players.Count];
+    }
+
+    public void PostGameCamera()
+    {
+        if (Camera.main != null)
+            Camera.main.gameObject.GetComponent<CameraController>().m_Focus = postGameBackground;
     }
 
     private class PlayerInfoComparer : Comparer<PlayerInfo>

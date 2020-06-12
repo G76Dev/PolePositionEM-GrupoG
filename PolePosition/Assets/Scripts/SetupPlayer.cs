@@ -69,6 +69,8 @@ public class SetupPlayer : NetworkBehaviour
             //Asignar los correspondientes eventos a sus llamadas
             m_PolePositionManager.StartRaceEvent += m_UIManager.HideReadyButton;
             m_checkPointController.changeLapEvent += m_PolePositionManager.resetLapTime;
+            m_checkPointController.endRaceEvent += m_PolePositionManager.PostGameCamera;
+            m_checkPointController.endRaceEvent += m_UImanager.endResultsHUD;
         }
 
         //Añade el jugador a la lista en todos los clientes y servidor

@@ -33,6 +33,10 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Text textLaps;
     [SerializeField] private Text textPosition;
 
+    [Header("In-Game HUD")]
+    [SerializeField]
+    private GameObject endResults;
+
     //Delegate events
     public delegate void SyncStart();
 
@@ -77,6 +81,7 @@ public class UIManager : MonoBehaviour
     {
         mainMenu.SetActive(true);
         inGameHUD.SetActive(false);
+        endResults.SetActive(false);
     }
 
     private void playerIsReady()
@@ -109,6 +114,13 @@ public class UIManager : MonoBehaviour
     {
         mainMenu.SetActive(false);
         inGameHUD.SetActive(true);
+    }
+
+    public void endResultsHUD()
+    {
+        mainMenu.SetActive(false);
+        inGameHUD.SetActive(false);
+        endResults.SetActive(true);
     }
 
     private void StartHost()

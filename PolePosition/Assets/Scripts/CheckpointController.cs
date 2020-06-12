@@ -8,9 +8,12 @@ public class CheckpointController : MonoBehaviour
     private PolePositionManager m_PoleManager;
     [HideInInspector] GameObject checkpointList;
 
+
+
     public delegate void changeLapDelegate();
 
     public event changeLapDelegate changeLapEvent;
+    public event changeLapDelegate endRaceEvent;
 
 
     public void Awake()
@@ -39,9 +42,19 @@ public class CheckpointController : MonoBehaviour
             {
                 //print("CHECKPOINT " + nextCheckPoint + " ALCANZADO");
                 m_PlayerInfo.checkpointCount++;
+
                 if (m_PlayerInfo.checkpointCount == checkpointList.transform.childCount)
                 {
                     m_PlayerInfo.CurrentLap++;
+
+                    if(m_PlayerInfo.CurrentLap >= m_PoleManager.totalLaps)
+                    {
+                        if (endRaceEvent != null)
+                            endRaceEvent();
+
+                        return;
+                    }
+
                     m_PlayerInfo.checkpointCount = 0;
 
                     if (changeLapEvent != null)
