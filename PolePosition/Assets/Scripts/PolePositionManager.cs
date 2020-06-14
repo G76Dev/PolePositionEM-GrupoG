@@ -36,11 +36,6 @@ public class PolePositionManager : NetworkBehaviour
 
     public event SyncStart StartRaceEvent;
 
-    //Delegado para la actualización de la posición en la interfaz.
-    public delegate void OnPositionChangeDelegate(int newVal);
-
-    public event OnPositionChangeDelegate OnPositionChangeEvent;
-
     //Delegado para la actualización de las vueltas y el tiempo en la interfaz.
     public delegate void OnLapChangeDelegate(int newVal, int newVal2, int newVal3);
 
@@ -219,14 +214,9 @@ public class PolePositionManager : NetworkBehaviour
         int cont = 1;
         foreach (var _player in m_Players)
         {
-            if (_player.CurrentPosition != cont)
-            {
+            if(_player.CurrentPosition != cont)
                 _player.CurrentPosition = cont;
-                if (_player.LocalPlayer && OnPositionChangeEvent != null)
-                {
-                    OnPositionChangeEvent((_player.CurrentPosition));
-                }
-            }
+ 
             myRaceOrder += _player.Name + " ";         
 
             cont++;

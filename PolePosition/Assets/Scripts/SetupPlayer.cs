@@ -38,7 +38,7 @@ public class SetupPlayer : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
-        m_ID = connectionToClient.connectionId;      
+        m_ID = connectionToClient.connectionId;
     }
 
     /// <summary>
@@ -48,20 +48,18 @@ public class SetupPlayer : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-
         m_PlayerInfo.ID = m_ID;
         m_PlayerInfo.Name = "Player " + m_ID + " : " + m_Name;
         m_PlayerInfo.CurrentLap = 0;
         m_PlayerInfo.CurrentPosition = 0;
-
         Material(color);
 
         //Guardamos en el playerinfo si este pertenece al jugador local o a otro. Se utiliza en el pole position para distintos aspectos.
         m_PlayerInfo.LocalPlayer = isLocalPlayer;
 
-        if(isLocalPlayer)
+        if (isLocalPlayer)
         {
-            //Asignar los scripts locales del jugador que controla este cliente
+            m_PlayerInfo.OnPositionChangeEvent += OnPositionChangeEventHandler;
             m_PolePositionManager.setupPlayer = this;
             m_PolePositionManager.mirrorManager = GetComponent<MirrorManager>();
             m_PolePositionManager.playerController = GetComponent<PlayerController>();
@@ -99,7 +97,6 @@ public class SetupPlayer : NetworkBehaviour
         {
             //Nothing
         }
-
     }
 
     #endregion
@@ -126,11 +123,19 @@ public class SetupPlayer : NetworkBehaviour
             //la variable color se compartira entre los distintos jugadores para que se pueda ver a cada jugador del color que deseen           
 
             m_PlayerController.enabled = true;
+            m_PlayerController.startFriction();
             m_PlayerController.OnSpeedChangeEvent += OnSpeedChangeEventHandler;
-            m_PolePositionManager.OnPositionChangeEvent += OnPositionChangeEventHandler;
             m_PolePositionManager.updateTime += OnLapChangeEventHandler;
             ConfigureCamera();
         }
+        //foreach (AxleInfo axle in m_PlayerController.axleInfos)
+        //{
+        //    Cuando la velocidad es mayor a un valor pequeño, reducimos la fricción con el suelo para que el control del coche sea más rápido y fluido.
+        //    WheelFrictionCurve aux = axle.leftWheel.sidewaysFriction;
+        //    aux.extremumSlip = 0.4f;
+        //    axle.rightWheel.sidewaysFriction = aux;
+        //    axle.leftWheel.sidewaysFriction = aux;
+        //}
     }
 
     void OnSpeedChangeEventHandler(float speed)
