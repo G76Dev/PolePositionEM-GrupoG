@@ -49,7 +49,7 @@ public class SetupPlayer : NetworkBehaviour
     {
         base.OnStartClient();
         m_PlayerInfo.ID = m_ID;
-        m_PlayerInfo.Name = "Player " + m_ID + " : " + m_Name;
+        m_PlayerInfo.Name = m_Name;
         m_PlayerInfo.CurrentLap = 0;
         m_PlayerInfo.CurrentPosition = 0;
         Material(color);
@@ -123,7 +123,7 @@ public class SetupPlayer : NetworkBehaviour
             //la variable color se compartira entre los distintos jugadores para que se pueda ver a cada jugador del color que deseen           
 
             m_PlayerController.enabled = true;
-            m_PlayerController.startFriction();
+            m_PolePositionManager.OnOrderChangeEvent += OnOrderChangeEventHandler;
             m_PlayerController.OnSpeedChangeEvent += OnSpeedChangeEventHandler;
             m_PolePositionManager.updateTime += OnLapChangeEventHandler;
             ConfigureCamera();
@@ -141,6 +141,11 @@ public class SetupPlayer : NetworkBehaviour
     void OnSpeedChangeEventHandler(float speed)
     {
         m_UIManager.UpdateSpeed((int) speed * 5); // 5 for visualization purpose (km/h)
+    }
+
+    void OnOrderChangeEventHandler(string newOrder)
+    {
+        m_UIManager.UpdateOrder(newOrder);
     }
 
     //Actualizamos el valor de la posición en la interfaz del jugador.
@@ -207,6 +212,6 @@ public class SetupPlayer : NetworkBehaviour
     //Función que se ejecuta cuando cambia el valor de la variable m_Name. Actualiza el nombre del jugador con el nombre nuevo.
     void SetNombre(string antiguoNombre, string nuevoNombre)
     {
-        m_PlayerInfo.Name = "Player " + m_ID + " : " + nuevoNombre;
+        m_PlayerInfo.Name = nuevoNombre;
     }
 }

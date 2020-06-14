@@ -23,7 +23,7 @@ public class PolePositionManager : NetworkBehaviour
     float[] arcAux;
 
     private readonly List<PlayerInfo> m_Players = new List<PlayerInfo>(4);
-    private CircuitController m_CircuitController;//controlador del circuito
+    public CircuitController m_CircuitController;//controlador del circuito
     private GameObject[] m_DebuggingSpheres;//esfera para uso en el debug
 
     private float tempTime = 0;
@@ -40,6 +40,24 @@ public class PolePositionManager : NetworkBehaviour
     public delegate void OnLapChangeDelegate(int newVal, int newVal2, int newVal3);
 
     public event OnLapChangeDelegate updateTime;
+
+    private string m_CurrentOrder = "";
+
+    //Variable para actualizar el orden de los jugadores en la interfaz
+    private string Order
+    {
+        get { return m_CurrentOrder; }
+        set
+        {
+            m_CurrentOrder = value;
+            if (OnOrderChangeEvent != null)
+                OnOrderChangeEvent(m_CurrentOrder);
+        }
+    }
+
+    public delegate void OnOrderChangeDelegate(string newVal);
+
+    public event OnOrderChangeDelegate OnOrderChangeEvent;
 
     private void Awake()
     {
@@ -154,9 +172,10 @@ public class PolePositionManager : NetworkBehaviour
             int index = -1;
             for (int i = 0; i < players.Count; i++)
             {
-                if (pi.Equals(players[i]))
+                if (pi.ID == players[i].ID)
                 {
                     index = i;
+                    return index;
                 }
             }
             return index;
@@ -201,9 +220,7 @@ public class PolePositionManager : NetworkBehaviour
                     print("El jugador " + m_Players[i].ID + " va hacia atrás");
                 }
             }
-
-
-            
+      
             //print((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])));
             arcAux[i] = arcLengths[i];
         }
@@ -217,11 +234,17 @@ public class PolePositionManager : NetworkBehaviour
             if(_player.CurrentPosition != cont)
                 _player.CurrentPosition = cont;
  
-            myRaceOrder += _player.Name + " ";         
+            myRaceOrder += "P" + cont + ": " + _player.Name + "\n";         
 
             cont++;
         }
 
+        //Si el orden ha cambiado, actualizamos el valor de la interfaz.
+        if (!Order.Equals(myRaceOrder))
+        {
+            Order = myRaceOrder;
+        }
+        
         //Con esto se llamaría al evento para actualizar la posición. Falta saber quien es el jugador local para poner su posicion en lugar de la de otro
         //if(OnPositionChangeEvent != null)
         //{

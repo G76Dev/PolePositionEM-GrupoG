@@ -32,6 +32,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Text textSpeed;
     [SerializeField] private Text textLaps;
     [SerializeField] private Text textPosition;
+    [SerializeField] private Text textOrder;
 
     [Header("In-Game HUD")]
     [SerializeField]
@@ -77,11 +78,16 @@ public class UIManager : MonoBehaviour
         textLaps.text += "Total time: " + totalTime;
     }
 
+    public void UpdateOrder(string newOrder)
+    {
+        textOrder.text = newOrder;
+    }
+
     private void ActivateMainMenu()
     {
         mainMenu.SetActive(true);
         inGameHUD.SetActive(false);
-        endResults.SetActive(false);
+        //endResults.SetActive(false);
     }
 
     private void playerIsReady()
@@ -120,13 +126,13 @@ public class UIManager : MonoBehaviour
     {
         mainMenu.SetActive(false);
         inGameHUD.SetActive(false);
-        endResults.SetActive(true);
+        //endResults.SetActive(true);
     }
 
     private void StartHost()
     {
         //se almacena el nombre en este caso del host
-        userName = "host";
+        userName = nameField.text;
         m_NetworkManager.StartHost();
         ActivateInGameHUD();
      

@@ -77,10 +77,8 @@ public class PlayerController : NetworkBehaviour
         m_PlayerInfo.checkpointCount = 0;
         
     }
-
     private void Start()
     {
-
     }
 
     public void Update()
@@ -194,21 +192,6 @@ public class PlayerController : NetworkBehaviour
                 axleInfo.rightWheel.motorTorque -= axleInfo.rightWheel.motorTorque * howMuchSlip * slipLimit;
             }
 
-
-            if (Speed > 0.3f)
-            {
-                WheelFrictionCurve aux = axleInfo.leftWheel.sidewaysFriction;
-                aux.extremumSlip = 0.2f;
-                axleInfo.rightWheel.sidewaysFriction = aux;
-                axleInfo.leftWheel.sidewaysFriction = aux;
-            }
-            else
-            {
-                WheelFrictionCurve aux = axleInfo.leftWheel.sidewaysFriction;
-                aux.extremumSlip = 0.4f;
-                axleInfo.rightWheel.sidewaysFriction = aux;
-                axleInfo.leftWheel.sidewaysFriction = aux;
-            }             
         }
     }
 
@@ -264,14 +247,19 @@ public class PlayerController : NetworkBehaviour
                             //To Do: Activar señal grafica que indique que el coche se ha ahostiado
                             //print("ME HE AHOSTIADO");
 
-                            if (Input.GetAxis("ResetCar") > 0)
-                            {
-                                transform.rotation = Quaternion.Euler(0, -90, 0);
-                                canMove = false; //Esto existe para crear una penalizacion de tiempo por darle la vuelta al coche, pero de momento funciona un poco mal
-                                StartCoroutine("RestartMovement", 1);
-                             }
+                        if (Input.GetAxis("ResetCar") > 0)
+                        {
+                            int segIdx;
+                            float carDist;
+                            Vector3 newPosition;
+                            m_PoleManager.m_CircuitController.ComputeClosestPointArcLength(transform.position, out segIdx, out newPosition, out carDist); ;
+                            transform.position = newPosition;
+                            transform.rotation = Quaternion.Euler(0, -90, 0);
+                            canMove = false; //Esto existe para crear una penalizacion de tiempo por darle la vuelta al coche, pero de momento funciona un poco mal
+                            StartCoroutine("RestartMovement", 1);
+                        }
 
-                    return; // wheels arent on the ground so dont realign the rigidbody velocity
+                        return; // wheels arent on the ground so dont realign the rigidbody velocity
                     }
                 }
 
