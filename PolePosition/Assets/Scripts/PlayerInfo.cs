@@ -44,6 +44,10 @@ public class PlayerInfo : MonoBehaviour
 
     public int checkpointCount { get; set; }
 
+    public float totalTime { get; set; }
+
+    public bool hasEnded { get; set; }
+
 
     public override string ToString()
     {

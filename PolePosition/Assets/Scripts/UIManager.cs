@@ -34,9 +34,12 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Text textPosition;
     [SerializeField] private Text textOrder;
 
-    [Header("In-Game HUD")]
+    [Header("End Results HUD")]
     [SerializeField]
     private GameObject endResults;
+
+    [SerializeField] private Text endText;
+
 
     //Delegate events
     public delegate void SyncStart();
@@ -61,6 +64,11 @@ public class UIManager : MonoBehaviour
 
     }
 
+    public void UpdateEndResults(string results)
+    {
+        endText.text = results;
+    }
+
     public void UpdateSpeed(int speed)
     {
         textSpeed.text = "Speed " + speed + " Km/h";
@@ -71,11 +79,11 @@ public class UIManager : MonoBehaviour
         textPosition.text = "Position: " + pos;
     }
 
-    public void UpdateLap(int lap, int currentTime, int totalTime)
+    public void UpdateLap(int lap, double currentTime, double totalTime, int totalLaps)
     {
-        textLaps.text = "Current lap: " + lap + "/ MAX LAPS \n"; //Cambiar MAX LAPS por una variable que almacene el numero de vueltas a recorrer. 
-        textLaps.text += "Time of this lap: " + currentTime + "\n";
-        textLaps.text += "Total time: " + totalTime;
+        textLaps.text = "Current lap: " + lap + "/ " + totalLaps + "\n"; //Cambiar MAX LAPS por una variable que almacene el numero de vueltas a recorrer. 
+        textLaps.text += "Time of this lap: " + "\n" +  currentTime + "\n";
+        textLaps.text += "Total time: " + "\n" +  totalTime;
     }
 
     public void UpdateOrder(string newOrder)
@@ -87,7 +95,7 @@ public class UIManager : MonoBehaviour
     {
         mainMenu.SetActive(true);
         inGameHUD.SetActive(false);
-        //endResults.SetActive(false);
+        endResults.SetActive(false);
     }
 
     private void playerIsReady()
@@ -126,7 +134,7 @@ public class UIManager : MonoBehaviour
     {
         mainMenu.SetActive(false);
         inGameHUD.SetActive(false);
-        //endResults.SetActive(true);
+        endResults.SetActive(true);
     }
 
     private void StartHost()

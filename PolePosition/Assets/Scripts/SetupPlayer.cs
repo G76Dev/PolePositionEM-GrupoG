@@ -126,6 +126,7 @@ public class SetupPlayer : NetworkBehaviour
             m_PolePositionManager.OnOrderChangeEvent += OnOrderChangeEventHandler;
             m_PlayerController.OnSpeedChangeEvent += OnSpeedChangeEventHandler;
             m_PolePositionManager.updateTime += OnLapChangeEventHandler;
+            m_PolePositionManager.updateResults += OnRaceEndEventHandler;
             ConfigureCamera();
         }
         //foreach (AxleInfo axle in m_PlayerController.axleInfos)
@@ -155,9 +156,14 @@ public class SetupPlayer : NetworkBehaviour
     }
 
     //Actualizamos el valor de la vuelta actual, y el tiempo, en la interfaz del jugador.
-    void OnLapChangeEventHandler(int lap, int currentTime, int totalTime)
+    void OnLapChangeEventHandler(int lap, double currentTime, double totalTime, int totalLaps)
     {
-        m_UIManager.UpdateLap(lap, currentTime, totalTime);
+        m_UIManager.UpdateLap(lap, currentTime, totalTime, totalLaps);
+    }
+
+    void OnRaceEndEventHandler(string results)
+    {
+        m_UImanager.UpdateEndResults(results);
     }
 
     void ConfigureCamera()

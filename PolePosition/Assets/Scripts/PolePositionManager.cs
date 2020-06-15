@@ -27,8 +27,13 @@ public class PolePositionManager : NetworkBehaviour
     private GameObject[] m_DebuggingSpheres;//esfera para uso en el debug
 
     private float tempTime = 0;
-    private float totalTime = 0;
-    
+    public float totalTime = 0;
+    private float[] arcLengths;
+    private float[] playerTimes;
+
+    public bool isRaceEnded; //Determina si ha terminado la carrera y se utiliza para enviar segun qué información al HUD y ahorrar cálculos cuando la carrera ya ha terminado
+    private bool hasStarted = false; //Determina si la carrera ha comenzado. Se utiliza para sincronizar los contadores de todos los jugadores y para no contar el tiempo antes de que todos estén listos
+
 
 
     //Delegado para sincronizar el comienzo de la partida
@@ -37,7 +42,7 @@ public class PolePositionManager : NetworkBehaviour
     public event SyncStart StartRaceEvent;
 
     //Delegado para la actualización de las vueltas y el tiempo en la interfaz.
-    public delegate void OnLapChangeDelegate(int newVal, int newVal2, int newVal3);
+    public delegate void OnLapChangeDelegate(int currentLap, double lapTime, double totalTime, int totalLaps);
 
     public event OnLapChangeDelegate updateTime;
 
@@ -58,6 +63,7 @@ public class PolePositionManager : NetworkBehaviour
     public delegate void OnOrderChangeDelegate(string newVal);
 
     public event OnOrderChangeDelegate OnOrderChangeEvent;
+    public event OnOrderChangeDelegate updateResults;
 
     private void Awake()
     {
@@ -104,8 +110,10 @@ public class PolePositionManager : NetworkBehaviour
 
         setupPlayer.m_PlayerController.canMove = true; //Actualiza el bool canMove en el playerController del jugador de este cliente, gracias a que el PolePositionManager de cada cliente guarda una referencia al jugador local de ese cliente
 
-        if(StartRaceEvent != null)
+        if (StartRaceEvent != null)
             StartRaceEvent();
+
+        hasStarted = true;
     }
 
     //Esta llamada Rpc está en este lugar por el mismo motivo de la anterior
@@ -129,6 +137,7 @@ public class PolePositionManager : NetworkBehaviour
         if (m_Players.Count == 0)
             return;
 
+        if (hasStarted) //Solo actualiza el estado de la carrera si ha comenzado. Así ahorramos cálculos innecesarios
             UpdateRaceProgress();
 
     }
@@ -137,6 +146,8 @@ public class PolePositionManager : NetworkBehaviour
     public void AddPlayer(PlayerInfo player)
     {
         m_Players.Add(player);
+        arcLengths = new float[m_Players.Count];
+        playerTimes = new float[m_Players.Count];
         arcAux = new float[m_Players.Count];
     }
 
@@ -182,77 +193,196 @@ public class PolePositionManager : NetworkBehaviour
         }
     }
 
+    //Hace lo mismo que PlayerInfoComparer pero con sus tiempos y no con los Arclengths
+    private class PlayerTimeComparer : Comparer<PlayerInfo>
+    {
+        float[] m_playerTimes;
+        List<PlayerInfo> players;
+
+        public PlayerTimeComparer(float[] playerTimes, List<PlayerInfo> par_players)
+        {
+            m_playerTimes = playerTimes;
+            players = par_players;
+        }
+
+        public override int Compare(PlayerInfo x, PlayerInfo y)
+        {
+            if (this.m_playerTimes[GetIndex(x)] < m_playerTimes[GetIndex(y)])
+                return 1;
+            else return -1;
+        }
+
+        //Método que recibe un player info, y devuelve su índice en la lista de playerinfos.
+        //Esto es importante porque la posición de cada player info varía en cada iteración si un jugador adelanta a otro, por lo que usar el id para saber la posición en la lista
+        //de un player info como se hacía al principio terminaría dando errores y no detectando bien quien va delante de quien.
+        public int GetIndex(PlayerInfo pi)
+        {
+            int index = -1;
+            for (int i = 0; i < players.Count; i++)
+            {
+                if (pi.ID == players[i].ID)
+                {
+                    index = i;
+                    return index;
+                }
+            }
+            return index;
+        }
+    }
+
     public void UpdateRaceProgress()
     {
         // Update car arc-lengths
-        float[] arcLengths = new float[m_Players.Count]; //Es MUY ineficiente que se declare un nuevo array en cada frame
+        //arcLengths = new float[m_Players.Count]; //Es MUY ineficiente que se declare un nuevo array en cada frame
+        //Solo seria necesario aumentar el tamaño del array cada vez que se añade o se quita un jugador.
 
         for (int i = 0; i < m_Players.Count; ++i)
         {
-            //Si el jugador es local, se actualizan los tiempos.
-            if (m_Players[i].LocalPlayer)
+            if (!m_Players[i].hasEnded)
             {
-                tempTime += Time.deltaTime;
-                totalTime += Time.deltaTime;
-            }
+                //Si el jugador es local, se actualizan los tiempos.
+                //if (m_Players[i].LocalPlayer)
+                //{
+                    tempTime += Time.deltaTime;
+                    m_Players[i].totalTime = totalTime += Time.deltaTime;
+                //}
 
-            arcLengths[i] = ComputeCarArcLength(i);
-            //print("ORIGINAL: " + i + " " +  arcLengths[i]);
-            if (m_Players[i].LocalPlayer && updateTime != null)
-            {
-                updateTime(m_Players[i].CurrentLap, (int)tempTime, (int)(totalTime));
-            }
-
-
-            if (this.m_Players[i].CurrentLap == 0)
-            {
-                //Si el valor es positivo en la vuelta 0...
-                if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) > 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
+                arcLengths[i] = ComputeCarArcLength(i);
+                //print("ORIGINAL: " + i + " " +  arcLengths[i]);
+                if (m_Players[i].LocalPlayer && updateTime != null)
                 {
-                    print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                    updateTime(m_Players[i].CurrentLap, Math.Round(tempTime, 2), Math.Round(totalTime, 2), totalLaps);
                 }
+
+
+                if (this.m_Players[i].CurrentLap == 0)
+                {
+                    //Si el valor es positivo en la vuelta 0...
+                    if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) > 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
+                    {
+                        print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                    }
+                }
+                else
+                {
+                    //En el resto de vueltas, basta con comprobar los valores directos y ver si el de este frame es inferior al anterior.
+                    if (arcLengths[i] < arcAux[i]) //Intentar hacerlo sin valores absolutos (mas eficiente)
+                    {
+                        //print("ARCLENGHT " + arcLengths[i]);
+                        print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                    }
+                }
+
+                //print((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])));
+                arcAux[i] = arcLengths[i];
+
+
+                m_Players.Sort(new PlayerInfoComparer(arcLengths, m_Players));
+
+                string myRaceOrder = "";
+                int cont = 1;
+                foreach (var _player in m_Players)
+                {
+                    if (_player.CurrentPosition != cont)
+                        _player.CurrentPosition = cont;
+
+                    myRaceOrder += "P" + cont + ": " + _player.Name + "\n";
+
+                    cont++;
+                }
+
+                //Si el orden ha cambiado, actualizamos el valor de la interfaz.
+                if (!Order.Equals(myRaceOrder))
+                {
+                    Order = myRaceOrder;
+                }
+
+                //Con esto se llamaría al evento para actualizar la posición. Falta saber quien es el jugador local para poner su posicion en lugar de la de otro
+                //if(OnPositionChangeEvent != null)
+                //{
+
+                //}
+
+
+                //Debug.Log("El orden de carrera es: " + myRaceOrder + "\n");
             }
             else
             {
-                //En el resto de vueltas, un valor negativo indicará que el jugador va hacia atrás, como es normal.
-                if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) < 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
+                //Mantenemos la actualización de tiempo para que cuando un jugador acabe el resto siga actualizando su tiempo local.
+                //Además, utilizaremos el totalTime local de cada cliente para simular el tiempo actual de los demás jugadores.
+                //Es un poco falso, pero como nos aseguramos de que todos comienzan al mismo tiempo, resulta ser pragmático
+
+                 totalTime += Time.deltaTime;
+
+
+
+
+                //totalTime += Time.deltaTime; //Sigue actualizando el tiempo total de carrera, que se utilizará para los demás jugadores.
+                arcLengths[i] = ComputeCarArcLength(i);
+                m_Players.Sort(new PlayerTimeComparer(playerTimes, m_Players));
+
+                string myResults = "";
+                int cont = 1;
+                foreach (var _player in m_Players)
                 {
-                    print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                    if (_player.CurrentPosition != cont)
+                        _player.CurrentPosition = cont;
+
+                    switch (cont)
+                    {
+                        case 1:
+                            myResults += "FIRST PLACE: " + _player.Name + " || TIME: " + Math.Round(_player.totalTime, 2) + "\n";
+                            break;
+
+                        case 2:
+                            if (_player.hasEnded)
+                            {
+                                myResults += "SECOND PLACE: " + _player.Name + " || TIME: " + Math.Round(_player.totalTime, 2) + "\n";
+                            }
+                            else
+                            {
+                                myResults += "SECOND PLACE: " + _player.Name + " || TIME: " + Math.Round(totalTime, 2) + "\n";
+                            }
+                            break;
+
+                        case 3:
+                            if (_player.hasEnded)
+                            {
+                                myResults += "THIRD PLACE: " + _player.Name + " || TIME: " + Math.Round(_player.totalTime, 2) + "\n";
+                            }
+                            else
+                            {
+                                myResults += "THIRD PLACE: " + _player.Name + " || TIME: " + Math.Round(totalTime, 2) + "\n";
+                            }
+                            break;
+
+                        case 4:
+                            if (_player.hasEnded)
+                            {
+                                myResults += "LAST PLACE: " + _player.Name + " || TIME: " + Math.Round(_player.totalTime, 2) + "\n";
+                            }
+                            else
+                            {
+                                myResults += "LAST PLACE: " + _player.Name + " || TIME: " + Math.Round(totalTime, 2) + "\n";
+                            }
+                            break;
+
+                        default: //Esto no debería pasar
+                            myResults += "??? PLACE: " + _player.Name + " || TIME: " + Math.Round(totalTime, 2) + "\n";
+                            break;
+
+                    }
+
+                    cont++;
+                    //print("Aumenta CONTADOR");
                 }
+
+                if (updateResults != null)
+                    updateResults(myResults);
+
             }
-      
-            //print((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])));
-            arcAux[i] = arcLengths[i];
         }
 
-        m_Players.Sort(new PlayerInfoComparer(arcLengths, m_Players));
-
-        string myRaceOrder = "";
-        int cont = 1;
-        foreach (var _player in m_Players)
-        {
-            if(_player.CurrentPosition != cont)
-                _player.CurrentPosition = cont;
- 
-            myRaceOrder += "P" + cont + ": " + _player.Name + "\n";         
-
-            cont++;
-        }
-
-        //Si el orden ha cambiado, actualizamos el valor de la interfaz.
-        if (!Order.Equals(myRaceOrder))
-        {
-            Order = myRaceOrder;
-        }
-        
-        //Con esto se llamaría al evento para actualizar la posición. Falta saber quien es el jugador local para poner su posicion en lugar de la de otro
-        //if(OnPositionChangeEvent != null)
-        //{
-            
-        //}
-
-
-        Debug.Log("El orden de carrera es: " + myRaceOrder + "\n" );
     }
 
     public void resetLapTime()
@@ -291,5 +421,5 @@ public class PolePositionManager : NetworkBehaviour
         return minArcL;
     }
 
-    
+
 }

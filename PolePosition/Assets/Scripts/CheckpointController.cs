@@ -5,6 +5,7 @@ using UnityEngine;
 public class CheckpointController : MonoBehaviour
 {
     private PlayerInfo m_PlayerInfo;
+    private PlayerController m_PlayerController;
     private PolePositionManager m_PoleManager;
     [HideInInspector] GameObject checkpointList;
 
@@ -19,6 +20,7 @@ public class CheckpointController : MonoBehaviour
     public void Awake()
     {
         m_PoleManager = FindObjectOfType<PolePositionManager>();
+        m_PlayerController = GetComponent<PlayerController>();
         m_PlayerInfo = GetComponent<PlayerInfo>();
         m_PlayerInfo.checkpointCount = 0;
     }
@@ -51,6 +53,12 @@ public class CheckpointController : MonoBehaviour
                     {
                         if (endRaceEvent != null)
                             endRaceEvent();
+
+                        m_PlayerController.canMove = false; //El jugador que haya superado la carrera se dejará de mover.
+                        //To do: teletransportar al podio
+                        m_PlayerInfo.totalTime = m_PoleManager.totalTime;
+                        m_PlayerInfo.hasEnded = true;
+                        m_PoleManager.isRaceEnded = true;
 
                         return;
                     }
