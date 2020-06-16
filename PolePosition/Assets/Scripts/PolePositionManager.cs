@@ -5,11 +5,24 @@ using System.Text;
 using Mirror;
 using Mirror.Examples.Basic;
 using UnityEngine;
+using System.Threading;
+
+[System.Serializable]
+public class SyncDictionaryIntFloat : SyncDictionary<int, float> { }
+
 
 public class PolePositionManager : NetworkBehaviour
 {
-    public int numPlayers;//numero de jugadores
+    //Mutex mutex = new Mutex();
+
+    public int numPlayers = 0;//numero de jugadores
+    [SyncVar(hook = nameof(HookRecon))] int reconFinished = 0;
     [SyncVar] [HideInInspector] int playersReady;
+
+    SyncDictionaryIntFloat clasTimes = new SyncDictionaryIntFloat();
+
+    [SerializeField] GameObject[] spawns;
+
     public int totalLaps = 3;
 
     public NetworkManager networkManager;//controlador de la conexion
@@ -31,6 +44,8 @@ public class PolePositionManager : NetworkBehaviour
     private float[] arcLengths;
     private float[] playerTimes;
 
+    //Saber si se esta de reconocimiento o en la carrera final
+    public bool reconocimiento = true;
     public bool isRaceEnded; //Determina si ha terminado la carrera y se utiliza para enviar segun qué información al HUD y ahorrar cálculos cuando la carrera ya ha terminado
     private bool hasStarted = false; //Determina si la carrera ha comenzado. Se utiliza para sincronizar los contadores de todos los jugadores y para no contar el tiempo antes de que todos estén listos
 
@@ -137,9 +152,14 @@ public class PolePositionManager : NetworkBehaviour
         if (m_Players.Count == 0)
             return;
 
+        if (reconocimiento)
+        {
+            updateReconProgress();
+        }
         if (hasStarted) //Solo actualiza el estado de la carrera si ha comenzado. Así ahorramos cálculos innecesarios
+        {
             UpdateRaceProgress();
-
+        }     
     }
 
     //añade un jugador
@@ -190,6 +210,46 @@ public class PolePositionManager : NetworkBehaviour
                 }
             }
             return index;
+        }
+    }
+
+    //Método que gestiona los datos de la vuelta de reconocimiento, en lugar de la carrera.
+    public void updateReconProgress()
+    {
+        float[] arcLengths = new float[m_Players.Count]; //Es MUY ineficiente que se declare un nuevo array en cada frame
+        for (int i = 0; i < m_Players.Count; ++i)
+        {
+            //Si el jugador es local, se actualizan los tiempos.
+            if (m_Players[i].LocalPlayer)
+            {
+                tempTime += Time.deltaTime;
+                totalTime += Time.deltaTime;
+
+                arcLengths[i] = ComputeCarArcLength(i);
+                //print("ORIGINAL: " + i + " " +  arcLengths[i]);
+                if (m_Players[i].LocalPlayer && updateTime != null)
+                {
+                    updateTime(m_Players[i].CurrentLap, (int)tempTime, (int)(totalTime));
+                }
+
+
+                if (this.m_Players[i].CurrentLap == 0)
+                {
+                    //Si el valor es positivo en la vuelta 0...
+                    if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) > 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
+                    {
+                        print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                    }
+                }
+                else
+                {
+                    //En el resto de vueltas, un valor negativo indicará que el jugador va hacia atrás, como es normal.
+                    if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) < 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
+                    {
+                        print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                    }
+                }
+            }      
         }
     }
 
@@ -390,6 +450,87 @@ public class PolePositionManager : NetworkBehaviour
         tempTime = 0;
     }
 
+    public void UpdateServerReconTime(int ID)
+    {
+        //foreach (PlayerInfo player in m_Players)
+        //{
+        //    if (player.LocalPlayer)
+        //    {
+        //        player.gameObject.GetComponent<SetupPlayer>().CmdFinishRecon(tempTime, ID);
+        //    }
+        //}
+        setupPlayer.CmdFinishRecon(tempTime, ID);
+        playerController.localMove = false;
+        tempTime = 0;
+        totalTime = 0;
+        //tempTime = 0;
+        //totalTime = 0;
+        print("Canmove: " + playerController.canMove + " localmove: " + playerController.localMove);
+    }
+
+    public void UpdateReconTime(float newTime, int ID)
+    {
+        //mutex.WaitOne();
+        clasTimes.Add(ID, newTime);
+        reconFinished++;
+        //mutex.ReleaseMutex();
+    }
+
+    //Función que se ejecuta cada vez que el valor de reconFinished cambia, es decir, cada vez que un jugador termina la vuelta de reconocimiento.
+    void HookRecon(int antiguoValor, int nuevoValor)
+    {
+        if (nuevoValor >= numPlayers)
+        {           
+            List<float> times = new List<float>();
+            List<float> sortedTimes = new List<float>();
+            float aux;
+            for (int i = 0; i < numPlayers; i++)
+            {
+                clasTimes.TryGetValue(i, out aux);
+                times.Add(aux);
+                sortedTimes.Add(aux);
+            }
+            sortedTimes.Sort();
+
+            int cont = 0;
+            print("Numplayers: " + numPlayers + " mplayers: " + m_Players.Count);
+            for (int i = 0; i < times.Count; i++)
+            {
+                print("Objeto times: " + i + " " + times[i]);
+                print("Objeto sorted: " + i + " " + sortedTimes[i]);
+                aux = times[i];
+                if (aux!=0)
+                {
+                    foreach (float time in sortedTimes)
+                    {
+                        if (time != 0)
+                        {
+                            if (aux == time)
+                            {
+                                m_Players[i].gameObject.transform.position = spawns[cont].transform.position;
+                                m_Players[i].gameObject.transform.rotation = Quaternion.Euler(0, -90, 0);
+                                Renderer[] renders = m_Players[i].gameObject.GetComponentsInChildren<Renderer>();
+                                Collider[] colliders = m_Players[i].gameObject.GetComponentsInChildren<Collider>();
+                                foreach (Renderer r in renders)
+                                {
+                                    r.enabled = true;
+                                }
+                                foreach (Collider c in colliders)
+                                {
+                                    c.enabled = true;
+                                }
+                            }
+                            cont++;
+                        }                      
+                    }
+                    cont = 0;
+                }
+            }
+
+        }
+    }
+
+    //¿Calculos redundantes?
     float ComputeCarArcLength(int ID)
     {
         // Compute the projection of the car position to the closest circuit 
@@ -420,6 +561,4 @@ public class PolePositionManager : NetworkBehaviour
 
         return minArcL;
     }
-
-
 }

@@ -47,7 +47,19 @@ public class CheckpointController : MonoBehaviour
 
                 if (m_PlayerInfo.checkpointCount == checkpointList.transform.childCount)
                 {
-                    m_PlayerInfo.CurrentLap++;
+                    if (!m_PoleManager.reconocimiento)
+                    {
+                        m_PlayerInfo.CurrentLap++;
+                    }
+                    else
+                    {
+                        if (m_PlayerInfo.LocalPlayer)
+                        {
+                            m_PoleManager.reconocimiento = false;
+                            m_PoleManager.UpdateServerReconTime(m_PlayerInfo.ID);
+                        }                       
+                    }
+                    
 
                     if(m_PlayerInfo.CurrentLap >= m_PoleManager.totalLaps)
                     {

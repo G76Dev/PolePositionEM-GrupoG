@@ -27,8 +27,15 @@ public class PlayerController : NetworkBehaviour
     public float downForce = 100f;
     public float slipLimit = 0.2f;
 
+    public bool localMove = true;
+
+    //En teoria hay que quitar el syncvar
     [SyncVar] public bool canMove = false; //Decide si el jugador puede moverse
     //Comienza a false a la espera de que RpcStart le permita moverse
+
+    //
+
+
     public float crashTimer = 0;
 
     private float CurrentRotation { get; set; }
@@ -75,10 +82,11 @@ public class PlayerController : NetworkBehaviour
         //Esta variable no se usa de momento
         m_PlayerInfo = GetComponent<PlayerInfo>();
         m_PlayerInfo.checkpointCount = 0;
-        
+
     }
     private void Start()
     {
+
     }
 
     public void Update()
@@ -86,15 +94,15 @@ public class PlayerController : NetworkBehaviour
         //print(canMove);
         //print(crashTimer);
 
-        if (canMove)
+        //¿Espera activa?
+        if (canMove || localMove)
         {
-
             InputAcceleration = Input.GetAxis("Vertical");
             InputSteering = Input.GetAxis(("Horizontal"));
             InputBrake = Input.GetAxis("Jump");
             Speed = m_Rigidbody.velocity.magnitude;
 
-        } 
+        }
         else
         {
             Speed = 0;
@@ -114,55 +122,55 @@ public class PlayerController : NetworkBehaviour
 
         float steering = maxSteeringAngle * InputSteering;
 
-            foreach (AxleInfo axleInfo in axleInfos)
+        foreach (AxleInfo axleInfo in axleInfos)
+        {
+            if (axleInfo.steering)
             {
-                if (axleInfo.steering)
-                {
-                    axleInfo.leftWheel.steerAngle = steering;
-                    axleInfo.rightWheel.steerAngle = steering;
-                }
-
-                if (axleInfo.motor)
-                {
-                    if (InputAcceleration > float.Epsilon)
-                    {
-                        axleInfo.leftWheel.motorTorque = forwardMotorTorque;
-                        axleInfo.leftWheel.brakeTorque = 0;
-                        axleInfo.rightWheel.motorTorque = forwardMotorTorque;
-                        axleInfo.rightWheel.brakeTorque = 0;
-                    }
-
-                    if (InputAcceleration < -float.Epsilon)
-                    {
-                        axleInfo.leftWheel.motorTorque = -backwardMotorTorque;
-                        axleInfo.leftWheel.brakeTorque = 0;
-                        axleInfo.rightWheel.motorTorque = -backwardMotorTorque;
-                        axleInfo.rightWheel.brakeTorque = 0;
-                    }
-
-                    if (Math.Abs(InputAcceleration) < float.Epsilon)
-                    {
-                        axleInfo.leftWheel.motorTorque = 0;
-                        axleInfo.leftWheel.brakeTorque = engineBrake;
-                        axleInfo.rightWheel.motorTorque = 0;
-                        axleInfo.rightWheel.brakeTorque = engineBrake;
-                    }
-
-                    if (InputBrake > 0)
-                    {
-                        axleInfo.leftWheel.brakeTorque = footBrake;
-                        axleInfo.rightWheel.brakeTorque = footBrake;
-                    }
-                }
-
-                ApplyLocalPositionToVisuals(axleInfo.leftWheel);
-                ApplyLocalPositionToVisuals(axleInfo.rightWheel);
+                axleInfo.leftWheel.steerAngle = steering;
+                axleInfo.rightWheel.steerAngle = steering;
             }
 
-            SteerHelper();
-            SpeedLimiter();
-            AddDownForce();
-            TractionControl();
+            if (axleInfo.motor)
+            {
+                if (InputAcceleration > float.Epsilon)
+                {
+                    axleInfo.leftWheel.motorTorque = forwardMotorTorque;
+                    axleInfo.leftWheel.brakeTorque = 0;
+                    axleInfo.rightWheel.motorTorque = forwardMotorTorque;
+                    axleInfo.rightWheel.brakeTorque = 0;
+                }
+
+                if (InputAcceleration < -float.Epsilon)
+                {
+                    axleInfo.leftWheel.motorTorque = -backwardMotorTorque;
+                    axleInfo.leftWheel.brakeTorque = 0;
+                    axleInfo.rightWheel.motorTorque = -backwardMotorTorque;
+                    axleInfo.rightWheel.brakeTorque = 0;
+                }
+
+                if (Math.Abs(InputAcceleration) < float.Epsilon)
+                {
+                    axleInfo.leftWheel.motorTorque = 0;
+                    axleInfo.leftWheel.brakeTorque = engineBrake;
+                    axleInfo.rightWheel.motorTorque = 0;
+                    axleInfo.rightWheel.brakeTorque = engineBrake;
+                }
+
+                if (InputBrake > 0)
+                {
+                    axleInfo.leftWheel.brakeTorque = footBrake;
+                    axleInfo.rightWheel.brakeTorque = footBrake;
+                }
+            }
+
+            ApplyLocalPositionToVisuals(axleInfo.leftWheel);
+            ApplyLocalPositionToVisuals(axleInfo.rightWheel);
+        }
+
+        SteerHelper();
+        SpeedLimiter();
+        AddDownForce();
+        TractionControl();
 
     }
 
@@ -239,29 +247,39 @@ public class PlayerController : NetworkBehaviour
             axleInfo.leftWheel.GetGroundHit(out wheelHit[0]);
             axleInfo.rightWheel.GetGroundHit(out wheelHit[1]);
 
-                foreach (var wh in wheelHit)
+            foreach (var wh in wheelHit)
+            {
+                if (wh.normal == Vector3.zero) //Este if detecta cuando el coche se ha chocado y no puede seguir avanzando
                 {
-                    if (wh.normal == Vector3.zero) //Este if detecta cuando el coche se ha chocado y no puede seguir avanzando
+
+                    //To Do: Activar señal grafica que indique que el coche se ha ahostiado
+                    //print("ME HE AHOSTIADO");
+
+                    if (Input.GetAxis("ResetCar") > 0)
                     {
-                        
-                            //To Do: Activar señal grafica que indique que el coche se ha ahostiado
-                            //print("ME HE AHOSTIADO");
+                        int segIdx;
+                        float carDist;
+                        Vector3 newPosition;
+                        m_PoleManager.m_CircuitController.ComputeClosestPointArcLength(transform.position, out segIdx, out newPosition, out carDist); ;
+                        transform.position = newPosition;
+                        transform.rotation = Quaternion.Euler(0, -90, 0);
 
-                        if (Input.GetAxis("ResetCar") > 0)
+                        if (canMove)
                         {
-                            int segIdx;
-                            float carDist;
-                            Vector3 newPosition;
-                            m_PoleManager.m_CircuitController.ComputeClosestPointArcLength(transform.position, out segIdx, out newPosition, out carDist); ;
-                            transform.position = newPosition;
-                            transform.rotation = Quaternion.Euler(0, -90, 0);
+                            localMove = false;
                             canMove = false; //Esto existe para crear una penalizacion de tiempo por darle la vuelta al coche, pero de momento funciona un poco mal
-                            StartCoroutine("RestartMovement", 1);
+                            StartCoroutine("RestartMovementRace", 1);
                         }
-
-                        return; // wheels arent on the ground so dont realign the rigidbody velocity
+                        else
+                        {
+                            localMove = false; //Esto existe para crear una penalizacion de tiempo por darle la vuelta al coche, pero de momento funciona un poco mal
+                            StartCoroutine("RestartMovementRecon", 1);
+                        }
                     }
+
+                    return; // wheels arent on the ground so dont realign the rigidbody velocity
                 }
+            }
 
         }
 
@@ -276,13 +294,19 @@ public class PlayerController : NetworkBehaviour
         CurrentRotation = transform.eulerAngles.y;
     }
 
-    IEnumerator RestartMovement(float sec)
+    IEnumerator RestartMovementRace(float sec)
     {
         print("Corutineando");
         yield return new WaitForSeconds(sec);
         canMove = true;
+        localMove = true;
     }
-
+    IEnumerator RestartMovementRecon(float sec)
+    {
+        print("Corutineando");
+        yield return new WaitForSeconds(sec);
+        localMove = true;
+    }
 
     #endregion
 }

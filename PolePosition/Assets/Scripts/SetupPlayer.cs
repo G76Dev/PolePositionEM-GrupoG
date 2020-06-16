@@ -76,6 +76,20 @@ public class SetupPlayer : NetworkBehaviour
         m_PolePositionManager.AddPlayer(m_PlayerInfo);
         print("JUGADOR AÑADIDO. JUGADORES ACTUALIZADOS: " + m_PolePositionManager.numPlayers);
 
+        //Si el coche no es el del jugador local, se oculta a la vista del jugador, para que corra la vuelta de clasificación y decidir el orden de salida.
+        if (!isLocalPlayer)
+        {
+            Renderer[] renders = gameObject.GetComponentsInChildren<Renderer>();
+            Collider[] colliders = gameObject.GetComponentsInChildren<Collider>();
+            foreach (Renderer r in renders)
+            {
+                r.enabled = false;
+            }
+            foreach (Collider c in colliders)
+            {
+                c.enabled = false;
+            }
+        }      
     }
 
 
@@ -129,6 +143,7 @@ public class SetupPlayer : NetworkBehaviour
             m_PolePositionManager.updateResults += OnRaceEndEventHandler;
             ConfigureCamera();
         }
+        
         //foreach (AxleInfo axle in m_PlayerController.axleInfos)
         //{
         //    Cuando la velocidad es mayor a un valor pequeño, reducimos la fricción con el suelo para que el control del coche sea más rápido y fluido.
@@ -137,6 +152,13 @@ public class SetupPlayer : NetworkBehaviour
         //    axle.rightWheel.sidewaysFriction = aux;
         //    axle.leftWheel.sidewaysFriction = aux;
         //}
+    }
+
+    //Sirve para ejecutar el command de polePosition desde un objeto con permisos para ello (el jugador local)
+    [Command]
+    public void CmdFinishRecon(float time, int ID)
+    {
+        m_PolePositionManager.UpdateReconTime(time, ID);
     }
 
     void OnSpeedChangeEventHandler(float speed)
