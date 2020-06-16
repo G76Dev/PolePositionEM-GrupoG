@@ -229,7 +229,7 @@ public class PolePositionManager : NetworkBehaviour
                 //print("ORIGINAL: " + i + " " +  arcLengths[i]);
                 if (m_Players[i].LocalPlayer && updateTime != null)
                 {
-                    updateTime(m_Players[i].CurrentLap, (int)tempTime, (int)(totalTime));
+                    updateTime(m_Players[i].CurrentLap, Math.Round(tempTime, 2), Math.Round(totalTime, 2), totalLaps);
                 }
 
 
