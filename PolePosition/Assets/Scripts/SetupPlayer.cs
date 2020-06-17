@@ -12,7 +12,7 @@ using System.Threading;
 
 public class SetupPlayer : NetworkBehaviour
 {
-    [SyncVar] private int m_ID;
+    [SyncVar(hook = nameof(SetID))] private int m_ID;
     [SyncVar(hook = nameof(SetNombre))] private string m_Name;
     //CountdownEvent comenzar = new CountdownEvent(2);
 
@@ -74,22 +74,7 @@ public class SetupPlayer : NetworkBehaviour
         //Añade el jugador a la lista en todos los clientes y servidor
         m_PolePositionManager.numPlayers++;
         m_PolePositionManager.AddPlayer(m_PlayerInfo);
-        print("JUGADOR AÑADIDO. JUGADORES ACTUALIZADOS: " + m_PolePositionManager.numPlayers);
-
-        //Si el coche no es el del jugador local, se oculta a la vista del jugador, para que corra la vuelta de clasificación y decidir el orden de salida.
-        if (!isLocalPlayer)
-        {
-            Renderer[] renders = gameObject.GetComponentsInChildren<Renderer>();
-            Collider[] colliders = gameObject.GetComponentsInChildren<Collider>();
-            foreach (Renderer r in renders)
-            {
-                r.enabled = false;
-            }
-            foreach (Collider c in colliders)
-            {
-                c.enabled = false;
-            }
-        }      
+        print("JUGADOR AÑADIDO. JUGADORES ACTUALIZADOS: " + m_PolePositionManager.numPlayers);           
     }
 
 
@@ -107,6 +92,7 @@ public class SetupPlayer : NetworkBehaviour
         //wait() para que no comience la carrera hasta que cada cliente de su señal.
         CmdSaveColor(m_selection.selection);
         CmdSaveNombre(m_UIManager.userName);
+        CmdUpdateActualIDPlayer();
         if (m_NetworkManager.isNetworkActive) //Si el cliente está listo para empezar
         {
             //Nothing
@@ -116,7 +102,7 @@ public class SetupPlayer : NetworkBehaviour
     #endregion
 
     private void Awake()
-    {
+    {       
         m_PlayerInfo = GetComponent<PlayerInfo>();
         m_PlayerController = GetComponent<PlayerController>();
         m_NetworkManager = FindObjectOfType<NetworkManager>();
@@ -141,9 +127,30 @@ public class SetupPlayer : NetworkBehaviour
             m_PlayerController.OnSpeedChangeEvent += OnSpeedChangeEventHandler;
             m_PolePositionManager.updateTime += OnLapChangeEventHandler;
             m_PolePositionManager.updateResults += OnRaceEndEventHandler;
+            m_PolePositionManager.updateClasTime += OnClasLapChangeEventHandler;
+            m_PolePositionManager.OnBackDirectionChangeEvent += UpdateBackDirectionUI;
+            m_PolePositionManager.OnCrashedStateChangeEvent += UpdateCrashedUI;
+
             ConfigureCamera();
+            m_UIManager.StartClasificationLap();
         }
-        
+        else
+        {
+            //Si el coche no es el del jugador local, se oculta a la vista del jugador, para que corra la vuelta de clasificación y decidir el orden de salida.
+
+            Renderer[] renders = gameObject.GetComponentsInChildren<Renderer>();
+            Collider[] colliders = gameObject.GetComponentsInChildren<Collider>();
+            foreach (Renderer r in renders)
+            {
+                r.enabled = false;
+            }
+            foreach (Collider c in colliders)
+            {
+                c.enabled = false;
+            }
+
+        }
+
         //foreach (AxleInfo axle in m_PlayerController.axleInfos)
         //{
         //    Cuando la velocidad es mayor a un valor pequeño, reducimos la fricción con el suelo para que el control del coche sea más rápido y fluido.
@@ -181,6 +188,12 @@ public class SetupPlayer : NetworkBehaviour
     void OnLapChangeEventHandler(int lap, double currentTime, double totalTime, int totalLaps)
     {
         m_UIManager.UpdateLap(lap, currentTime, totalTime, totalLaps);
+    }
+
+    //Actualizamos el valor de la vuelta actual, y el tiempo, en la interfaz del jugador.
+    void OnClasLapChangeEventHandler(double currentTime)
+    {
+        m_UIManager.UpdateClasLap(currentTime);
     }
 
     void OnRaceEndEventHandler(string results)
@@ -231,6 +244,12 @@ public class SetupPlayer : NetworkBehaviour
         m_Name = nombre;
     }
 
+    [Command]
+    void CmdUpdateActualIDPlayer()
+    {
+        m_ID = m_PolePositionManager.updatePlayersID();
+    }
+
     //Función que se ejecuta cuando cambia el valor de la variable color. Actualiza el color del coche con el color nuevo.
     void SetColor(int oldColor, int newColor)
     {
@@ -240,6 +259,27 @@ public class SetupPlayer : NetworkBehaviour
     //Función que se ejecuta cuando cambia el valor de la variable m_Name. Actualiza el nombre del jugador con el nombre nuevo.
     void SetNombre(string antiguoNombre, string nuevoNombre)
     {
+
         m_PlayerInfo.Name = nuevoNombre;
+    }
+
+    //Función que se ejecuta cuando cambia el valor de la variable m_Name. Actualiza el nombre del jugador con el nombre nuevo.
+    void SetID(int antiguoID, int nuevoID)
+    {
+        m_PlayerInfo.ID = nuevoID;
+        print("ant id: " + antiguoID);
+        print("ID: " + nuevoID);
+    }
+
+    void UpdateCrashedUI(bool newVal)
+    {
+        print("UI Crashed");
+        m_UIManager.alternateCrash(newVal);
+    }
+
+    void UpdateBackDirectionUI(bool newVal)
+    {
+        print("UI back direction");
+        m_UIManager.alternateMarchaAtras(newVal);
     }
 }

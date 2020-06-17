@@ -7,6 +7,8 @@ public class CheckpointController : MonoBehaviour
     private PlayerInfo m_PlayerInfo;
     private PlayerController m_PlayerController;
     private PolePositionManager m_PoleManager;
+    private UIManager m_UImanager;
+
     [HideInInspector] GameObject checkpointList;
 
 
@@ -22,6 +24,7 @@ public class CheckpointController : MonoBehaviour
         m_PoleManager = FindObjectOfType<PolePositionManager>();
         m_PlayerController = GetComponent<PlayerController>();
         m_PlayerInfo = GetComponent<PlayerInfo>();
+        m_UImanager = FindObjectOfType<UIManager>();
         m_PlayerInfo.checkpointCount = 0;
     }
 
@@ -57,6 +60,7 @@ public class CheckpointController : MonoBehaviour
                         {
                             m_PoleManager.reconocimiento = false;
                             m_PoleManager.UpdateServerReconTime(m_PlayerInfo.ID);
+                            m_UImanager.FinishClasificationLap();
                         }                       
                     }
                     

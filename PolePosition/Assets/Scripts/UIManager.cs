@@ -34,6 +34,9 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Text textPosition;
     [SerializeField] private Text textOrder;
 
+    [SerializeField] private Text textCrash;
+    [SerializeField] private Text textMarchaAtras;
+
     [Header("End Results HUD")]
     [SerializeField]
     private GameObject endResults;
@@ -61,7 +64,21 @@ public class UIManager : MonoBehaviour
         buttonServer.onClick.AddListener(() => StartServer());
         readyButton.onClick.AddListener(() => playerIsReady());
         ActivateMainMenu();
+        textCrash.transform.parent.gameObject.SetActive(false);
+        textMarchaAtras.transform.parent.gameObject.SetActive(false);
+    }
 
+    public void StartClasificationLap()
+    {
+        HideReadyButton();
+        textPosition.gameObject.transform.parent.gameObject.SetActive(false);
+        textOrder.gameObject.transform.parent.gameObject.SetActive(false);
+    }
+    public void FinishClasificationLap()
+    {
+        readyButton.gameObject.SetActive(true);
+        textPosition.gameObject.transform.parent.gameObject.SetActive(true);
+        textOrder.gameObject.transform.parent.gameObject.SetActive(true);
     }
 
     public void UpdateEndResults(string results)
@@ -81,9 +98,16 @@ public class UIManager : MonoBehaviour
 
     public void UpdateLap(int lap, double currentTime, double totalTime, int totalLaps)
     {
+
         textLaps.text = "Current lap: " + lap + "/ " + totalLaps + "\n"; //Cambiar MAX LAPS por una variable que almacene el numero de vueltas a recorrer. 
-        textLaps.text += "Time of this lap: " + "\n" +  currentTime + "\n";
-        textLaps.text += "Total time: " + "\n" +  totalTime;
+        textLaps.text += "Time of this lap: " + "\n" + currentTime + "\n";
+        textLaps.text += "Total time: " + "\n" + totalTime;
+    }
+
+    public void UpdateClasLap(double currentTime)
+    {
+        textLaps.text = "Clasification Lap" + "\n";
+        textLaps.text += "Time of the lap: " + "\n" + currentTime + "\n";
     }
 
     public void UpdateOrder(string newOrder)
@@ -117,7 +141,15 @@ public class UIManager : MonoBehaviour
         }
     }
     
+    public void alternateCrash(bool newVal)
+    {
+        textCrash.transform.parent.gameObject.SetActive(newVal);
+    }
 
+    public void alternateMarchaAtras(bool newVal)
+    {
+        textMarchaAtras.transform.parent.gameObject.SetActive(newVal);
+    }
 
     public void HideReadyButton()
     {

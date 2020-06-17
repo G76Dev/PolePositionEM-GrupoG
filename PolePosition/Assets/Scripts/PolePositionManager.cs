@@ -16,7 +16,8 @@ public class PolePositionManager : NetworkBehaviour
     //Mutex mutex = new Mutex();
 
     public int numPlayers = 0;//numero de jugadores
-    [SyncVar(hook = nameof(HookRecon))] int reconFinished = 0;
+    [SyncVar] public int actualPlayerID = 0;
+    [SyncVar] int reconFinished = 0;
     [SyncVar] [HideInInspector] int playersReady;
 
     SyncDictionaryIntFloat clasTimes = new SyncDictionaryIntFloat();
@@ -38,6 +39,8 @@ public class PolePositionManager : NetworkBehaviour
     private readonly List<PlayerInfo> m_Players = new List<PlayerInfo>(4);
     public CircuitController m_CircuitController;//controlador del circuito
     private GameObject[] m_DebuggingSpheres;//esfera para uso en el debug
+
+    private float timer=0;
 
     private float tempTime = 0;
     public float totalTime = 0;
@@ -61,6 +64,11 @@ public class PolePositionManager : NetworkBehaviour
 
     public event OnLapChangeDelegate updateTime;
 
+    //Delegado para la actualización de las vueltas y el tiempo en la interfaz.
+    public delegate void OnClasLapChangeDelegate(double lapTime);
+
+    public event OnClasLapChangeDelegate updateClasTime;
+
     private string m_CurrentOrder = "";
 
     //Variable para actualizar el orden de los jugadores en la interfaz
@@ -75,9 +83,49 @@ public class PolePositionManager : NetworkBehaviour
         }
     }
 
+    private bool m_BackDirection = false;
+
+    //Variable para actualizar si el jugador local va marcha atras de los jugadores en la interfaz
+    public bool BackDirection
+    {
+        get { return m_BackDirection; }
+        set
+        {           
+            if (OnBackDirectionChangeEvent != null && m_BackDirection != value)
+                OnBackDirectionChangeEvent(value);
+
+            m_BackDirection = value;
+        }
+    }
+
+    public bool currentCrashed = false;
+
+    //Variable para actualizar si el jugador local se ha chocado de los jugadores en la interfaz
+    public bool crashed
+    {
+        get { return currentCrashed; }
+        set
+        {
+            
+            if (OnCrashedStateChangeEvent != null && currentCrashed != value)
+                OnCrashedStateChangeEvent(value);
+
+            currentCrashed = value;
+        }
+    }
+
+    public delegate void OnBackDirectionChangeDelegate(bool newVal);
+
+    public event OnBackDirectionChangeDelegate OnBackDirectionChangeEvent;
+
+    public delegate void OnCrashedStateChangeDelegate(bool newVal);
+
+    public event OnCrashedStateChangeDelegate OnCrashedStateChangeEvent;
+
     public delegate void OnOrderChangeDelegate(string newVal);
 
     public event OnOrderChangeDelegate OnOrderChangeEvent;
+
     public event OnOrderChangeDelegate updateResults;
 
     private void Awake()
@@ -122,13 +170,15 @@ public class PolePositionManager : NetworkBehaviour
     [ClientRpc]
     public void RpcStartRace()
     {
+        if (!hasStarted)
+        {
+            setupPlayer.m_PlayerController.canMove = true; //Actualiza el bool canMove en el playerController del jugador de este cliente, gracias a que el PolePositionManager de cada cliente guarda una referencia al jugador local de ese cliente
 
-        setupPlayer.m_PlayerController.canMove = true; //Actualiza el bool canMove en el playerController del jugador de este cliente, gracias a que el PolePositionManager de cada cliente guarda una referencia al jugador local de ese cliente
+            if (StartRaceEvent != null)
+                StartRaceEvent();
 
-        if (StartRaceEvent != null)
-            StartRaceEvent();
-
-        hasStarted = true;
+            hasStarted = true;
+        }       
     }
 
     //Esta llamada Rpc está en este lugar por el mismo motivo de la anterior
@@ -140,8 +190,76 @@ public class PolePositionManager : NetworkBehaviour
 
         if (playersReady >= numPlayers) //Si los jugadores preparados igualan o superan a la cantidad de jugadores,
         {
-            if (isServer) //Si es el servidor
-                mirrorManager.CmdStartRace(); //Llama al Command que más tarde llamará al RpcStartRace de este script
+            mirrorManager.CmdStartRace(); //Llama al Command que más tarde llamará al RpcStartRace de este script
+        }
+    }
+
+    //Función que se ejecuta cada vez que el valor de reconFinished cambia, es decir, cada vez que un jugador termina la vuelta de reconocimiento.
+    //[TargetRpc]
+    //void RpcHookRecon(NetworkConnection target, int position)
+    //{
+    //    foreach (PlayerInfo info in m_Players)
+    //    {
+    //        if (info.LocalPlayer)
+    //        {
+    //            info.gameObject.transform.position = spawns[position].transform.position;
+    //        }
+    //    }
+    //}
+
+    [ClientRpc]
+    void RpcHook(float[] times, float[] sortedTimes, int finished)
+    {
+        tempTime = 0;
+        totalTime = 0;
+
+        print("Jugadores completados " + finished);
+        print("times length " + times.Length);
+        print("times length " + sortedTimes.Length);
+        if (finished >= numPlayers)
+        {
+            int cont = 0;
+            float aux;
+            print("Numplayers: " + numPlayers + " mplayers: " + m_Players.Count);
+            for (int i = 0; i < times.Length; i++)
+            {
+                print("Objeto times: " + i + " " + times[i]);
+                print("Objeto sorted: " + i + " " + sortedTimes[i]);
+                aux = times[i];
+                if (aux != 0)
+                {
+                    foreach (float time in sortedTimes)
+                    {
+                        if (time != 0)
+                        {
+                            if (aux == time)
+                            {
+                                
+                                Renderer[] renders = m_Players[i].gameObject.GetComponentsInChildren<Renderer>();
+                                Collider[] colliders = m_Players[i].gameObject.GetComponentsInChildren<Collider>();                              
+                                foreach (Renderer r in renders)
+                                {
+                                    r.enabled = true;
+                                }
+                                foreach (Collider c in colliders)
+                                {
+                                    c.enabled = true;
+                                }
+
+                                m_Players[i].gameObject.transform.position = spawns[cont].transform.position;
+                                m_Players[i].gameObject.transform.rotation = Quaternion.Euler(0, -90, 0);
+
+                                m_Players[i].gameObject.GetComponent<Rigidbody>().velocity = Vector3.zero;
+                                m_Players[i].checkpointCount = 4;
+                                m_Players[i].CheckPoint = 4;
+                            }
+                            cont++;
+                        }
+                    }
+                    cont = 0;
+                }
+            }
+
         }
     }
 
@@ -152,14 +270,36 @@ public class PolePositionManager : NetworkBehaviour
         if (m_Players.Count == 0)
             return;
 
+        
         if (reconocimiento)
         {
+            if (!setupPlayer.gameObject.GetComponent<PlayerInfo>().hasEnded)
+            {
+                tempTime += Time.deltaTime;
+                totalTime += Time.deltaTime;
+            }
+
+            timer += Time.deltaTime;
             updateReconProgress();
         }
         if (hasStarted) //Solo actualiza el estado de la carrera si ha comenzado. Así ahorramos cálculos innecesarios
         {
+            if (!setupPlayer.gameObject.GetComponent<PlayerInfo>().hasEnded)
+            {
+                tempTime += Time.deltaTime;
+                totalTime += Time.deltaTime;
+            }
+            
+            timer += Time.deltaTime;
             UpdateRaceProgress();
         }     
+    }
+
+    public int updatePlayersID()
+    {
+        int aux = actualPlayerID;
+        actualPlayerID++;
+        return aux;
     }
 
     //añade un jugador
@@ -221,15 +361,12 @@ public class PolePositionManager : NetworkBehaviour
         {
             //Si el jugador es local, se actualizan los tiempos.
             if (m_Players[i].LocalPlayer)
-            {
-                tempTime += Time.deltaTime;
-                totalTime += Time.deltaTime;
-
+            { 
                 arcLengths[i] = ComputeCarArcLength(i);
                 //print("ORIGINAL: " + i + " " +  arcLengths[i]);
                 if (m_Players[i].LocalPlayer && updateTime != null)
                 {
-                    updateTime(m_Players[i].CurrentLap, Math.Round(tempTime, 2), Math.Round(totalTime, 2), totalLaps);
+                    updateClasTime(Math.Round(tempTime, 2));
                 }
 
 
@@ -239,6 +376,18 @@ public class PolePositionManager : NetworkBehaviour
                     if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) > 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
                     {
                         print("El jugador " + m_Players[i].ID + " va hacia atrás");
+
+                        if (m_Players[i].LocalPlayer && !m_Players[i].hasEnded /*&& timer >= 0.25*/)
+                            BackDirection = true;
+
+                    }
+                    else
+                    {
+                        if (m_Players[i].LocalPlayer)
+                        {
+                            BackDirection = false;
+                            timer = 0;
+                        }
                     }
                 }
                 else
@@ -247,8 +396,20 @@ public class PolePositionManager : NetworkBehaviour
                     if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) < 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
                     {
                         print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                        if (m_Players[i].LocalPlayer && !m_Players[i].hasEnded /*&& timer >= 0.25*/)
+                            BackDirection = true;
+
+                    }
+                    else
+                    {
+                        if (m_Players[i].LocalPlayer)
+                        {
+                            BackDirection = false;
+                            timer = 0;
+                        }
                     }
                 }
+                arcAux[i] = arcLengths[i];
             }      
         }
     }
@@ -303,8 +464,7 @@ public class PolePositionManager : NetworkBehaviour
                 //Si el jugador es local, se actualizan los tiempos.
                 //if (m_Players[i].LocalPlayer)
                 //{
-                    tempTime += Time.deltaTime;
-                    m_Players[i].totalTime = totalTime += Time.deltaTime;
+                m_Players[i].totalTime = totalTime;
                 //}
 
                 arcLengths[i] = ComputeCarArcLength(i);
@@ -321,6 +481,17 @@ public class PolePositionManager : NetworkBehaviour
                     if ((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])) > 0.01) //Intentar hacerlo sin valores absolutos (mas eficiente)
                     {
                         print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                        if (m_Players[i].LocalPlayer && !m_Players[i].hasEnded /*&& timer >= 0.25*/)
+                                BackDirection = true;
+                    }
+                    else
+                    {
+                        if (m_Players[i].LocalPlayer)
+                        {
+                            BackDirection = false;
+                            timer = 0;
+                        }
+                           
                     }
                 }
                 else
@@ -330,6 +501,17 @@ public class PolePositionManager : NetworkBehaviour
                     {
                         //print("ARCLENGHT " + arcLengths[i]);
                         print("El jugador " + m_Players[i].ID + " va hacia atrás");
+                        if (m_Players[i].LocalPlayer && !m_Players[i].hasEnded /*&& timer >= 0.25*/)
+                            BackDirection = true;
+                    }
+                    else
+                    {
+                        if (m_Players[i].LocalPlayer)
+                        {
+                            BackDirection = false;
+                            timer = 0;
+                        }
+                            
                     }
                 }
 
@@ -371,11 +553,6 @@ public class PolePositionManager : NetworkBehaviour
                 //Mantenemos la actualización de tiempo para que cuando un jugador acabe el resto siga actualizando su tiempo local.
                 //Además, utilizaremos el totalTime local de cada cliente para simular el tiempo actual de los demás jugadores.
                 //Es un poco falso, pero como nos aseguramos de que todos comienzan al mismo tiempo, resulta ser pragmático
-
-                 totalTime += Time.deltaTime;
-
-
-
 
                 //totalTime += Time.deltaTime; //Sigue actualizando el tiempo total de carrera, que se utilizará para los demás jugadores.
                 arcLengths[i] = ComputeCarArcLength(i);
@@ -468,67 +645,41 @@ public class PolePositionManager : NetworkBehaviour
         print("Canmove: " + playerController.canMove + " localmove: " + playerController.localMove);
     }
 
+
+
     public void UpdateReconTime(float newTime, int ID)
     {
         //mutex.WaitOne();
         clasTimes.Add(ID, newTime);
+
+        List<float> times = new List<float>();
+        List<float> sortedTimes = new List<float>();
+
+        float aux;
+        for (int i = 0; i < networkManager.numPlayers; i++)
+        {
+            clasTimes.TryGetValue(i, out aux);
+            print("Aux: " + aux);
+            times.Add(aux);
+            sortedTimes.Add(aux);
+        }
+        sortedTimes.Sort();
+        print("players length " + networkManager.numPlayers);
+        print("times length " + times.ToArray().Length);
+        print("times length " + sortedTimes.ToArray().Length);
+
         reconFinished++;
+        RpcHook(times.ToArray(), sortedTimes.ToArray(), reconFinished);
+        //NetworkConnectionToClient[] clients = new NetworkConnectionToClient[networkManager.maxConnections];
+
+        //for (int i = 0; i < clients.Length; i++)
+        //{
+        //    NetworkServer.connections.TryGetValue(i, out clients[i]);
+        //}
         //mutex.ReleaseMutex();
     }
 
-    //Función que se ejecuta cada vez que el valor de reconFinished cambia, es decir, cada vez que un jugador termina la vuelta de reconocimiento.
-    void HookRecon(int antiguoValor, int nuevoValor)
-    {
-        if (nuevoValor >= numPlayers)
-        {           
-            List<float> times = new List<float>();
-            List<float> sortedTimes = new List<float>();
-            float aux;
-            for (int i = 0; i < numPlayers; i++)
-            {
-                clasTimes.TryGetValue(i, out aux);
-                times.Add(aux);
-                sortedTimes.Add(aux);
-            }
-            sortedTimes.Sort();
 
-            int cont = 0;
-            print("Numplayers: " + numPlayers + " mplayers: " + m_Players.Count);
-            for (int i = 0; i < times.Count; i++)
-            {
-                print("Objeto times: " + i + " " + times[i]);
-                print("Objeto sorted: " + i + " " + sortedTimes[i]);
-                aux = times[i];
-                if (aux!=0)
-                {
-                    foreach (float time in sortedTimes)
-                    {
-                        if (time != 0)
-                        {
-                            if (aux == time)
-                            {
-                                m_Players[i].gameObject.transform.position = spawns[cont].transform.position;
-                                m_Players[i].gameObject.transform.rotation = Quaternion.Euler(0, -90, 0);
-                                Renderer[] renders = m_Players[i].gameObject.GetComponentsInChildren<Renderer>();
-                                Collider[] colliders = m_Players[i].gameObject.GetComponentsInChildren<Collider>();
-                                foreach (Renderer r in renders)
-                                {
-                                    r.enabled = true;
-                                }
-                                foreach (Collider c in colliders)
-                                {
-                                    c.enabled = true;
-                                }
-                            }
-                            cont++;
-                        }                      
-                    }
-                    cont = 0;
-                }
-            }
-
-        }
-    }
 
     //¿Calculos redundantes?
     float ComputeCarArcLength(int ID)

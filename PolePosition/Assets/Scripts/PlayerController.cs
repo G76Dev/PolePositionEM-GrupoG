@@ -29,6 +29,8 @@ public class PlayerController : NetworkBehaviour
 
     public bool localMove = true;
 
+    public float timerCrash = 0;
+
     //En teoria hay que quitar el syncvar
     [SyncVar] public bool canMove = false; //Decide si el jugador puede moverse
     //Comienza a false a la espera de que RpcStart le permita moverse
@@ -84,6 +86,7 @@ public class PlayerController : NetworkBehaviour
         m_PlayerInfo.checkpointCount = 0;
 
     }
+
     private void Start()
     {
 
@@ -95,12 +98,14 @@ public class PlayerController : NetworkBehaviour
         //print(crashTimer);
 
         //¿Espera activa?
+        //Activar o desactivar el playerController por eventos en lugar de comprobar booleanos.
         if (canMove || localMove)
         {
             InputAcceleration = Input.GetAxis("Vertical");
             InputSteering = Input.GetAxis(("Horizontal"));
             InputBrake = Input.GetAxis("Jump");
             Speed = m_Rigidbody.velocity.magnitude;
+            timerCrash += Time.deltaTime;
 
         }
         else
@@ -241,28 +246,57 @@ public class PlayerController : NetworkBehaviour
 
     private void SteerHelper()
     {
+        int cont;
         foreach (var axleInfo in axleInfos)
         {
             WheelHit[] wheelHit = new WheelHit[2];
             axleInfo.leftWheel.GetGroundHit(out wheelHit[0]);
             axleInfo.rightWheel.GetGroundHit(out wheelHit[1]);
-
+            cont = 0;
             foreach (var wh in wheelHit)
             {
                 if (wh.normal == Vector3.zero) //Este if detecta cuando el coche se ha chocado y no puede seguir avanzando
                 {
+                    if(!m_PlayerInfo.hasEnded && timerCrash >= 0.25)
+                        m_PoleManager.crashed = true;
 
                     //To Do: Activar señal grafica que indique que el coche se ha ahostiado
                     //print("ME HE AHOSTIADO");
 
                     if (Input.GetAxis("ResetCar") > 0)
                     {
+                        m_PoleManager.crashed = false;
                         int segIdx;
                         float carDist;
                         Vector3 newPosition;
                         m_PoleManager.m_CircuitController.ComputeClosestPointArcLength(transform.position, out segIdx, out newPosition, out carDist); ;
                         transform.position = newPosition;
-                        transform.rotation = Quaternion.Euler(0, -90, 0);
+
+                        print("checkcount" + m_PlayerInfo.checkpointCount);
+                        switch (m_PlayerInfo.checkpointCount)
+                        {
+                            case 1:
+                                transform.rotation = Quaternion.Euler(0, 180, 0);
+                                transform.position = m_PoleManager.checkPointList.transform.GetChild(1).position;
+                                break;
+                            case 2:
+                                transform.rotation = Quaternion.Euler(0, 90, 0);
+                                transform.position = m_PoleManager.checkPointList.transform.GetChild(2).position;
+                                break;
+                            case 3:
+                                transform.rotation = Quaternion.Euler(0, 0, 0);
+                                transform.position = m_PoleManager.checkPointList.transform.GetChild(3).position;
+                                break;
+                            case 4:
+                                transform.rotation = Quaternion.Euler(0, -90, 0);
+                                transform.position = m_PoleManager.checkPointList.transform.GetChild(4).position;
+                                break;
+                            default:
+                                transform.rotation = Quaternion.Euler(0, -90, 0);
+                                transform.position = m_PoleManager.checkPointList.transform.GetChild(0).position;
+                                break;
+                        }
+                        
 
                         if (canMove)
                         {
@@ -278,6 +312,13 @@ public class PlayerController : NetworkBehaviour
                     }
 
                     return; // wheels arent on the ground so dont realign the rigidbody velocity
+                }
+                else
+                {
+                    cont++;
+                    m_PoleManager.crashed = false;
+                    if (cont >= 2)
+                        timerCrash = 0;
                 }
             }
 
@@ -297,14 +338,18 @@ public class PlayerController : NetworkBehaviour
     IEnumerator RestartMovementRace(float sec)
     {
         print("Corutineando");
+        m_PoleManager.crashed = false;
         yield return new WaitForSeconds(sec);
+        m_PoleManager.crashed = false;
         canMove = true;
         localMove = true;
     }
     IEnumerator RestartMovementRecon(float sec)
     {
         print("Corutineando");
+        m_PoleManager.crashed = false;
         yield return new WaitForSeconds(sec);
+        m_PoleManager.crashed = false;
         localMove = true;
     }
 
