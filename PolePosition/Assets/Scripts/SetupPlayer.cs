@@ -134,7 +134,7 @@ public class SetupPlayer : NetworkBehaviour
             ConfigureCamera();
             m_UIManager.StartClasificationLap();
         }
-        else
+        else if(isClient)
         {
             //Si el coche no es el del jugador local, se oculta a la vista del jugador, para que corra la vuelta de clasificación y decidir el orden de salida.
 

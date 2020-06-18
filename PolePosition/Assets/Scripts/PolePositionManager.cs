@@ -210,14 +210,15 @@ public class PolePositionManager : NetworkBehaviour
     [ClientRpc]
     void RpcHook(float[] times, float[] sortedTimes, int finished)
     {
-        tempTime = 0;
-        totalTime = 0;
+        
 
         print("Jugadores completados " + finished);
         print("times length " + times.Length);
         print("times length " + sortedTimes.Length);
         if (finished >= numPlayers)
         {
+            tempTime = 0;
+            totalTime = 0;
             int cont = 0;
             float aux;
             print("Numplayers: " + numPlayers + " mplayers: " + m_Players.Count);
@@ -240,12 +241,14 @@ public class PolePositionManager : NetworkBehaviour
                                 foreach (Renderer r in renders)
                                 {
                                     r.enabled = true;
+                                    print("Cosa rara");
                                 }
                                 foreach (Collider c in colliders)
                                 {
                                     c.enabled = true;
+                                    print("Cosa rara");
                                 }
-
+                                
                                 m_Players[i].gameObject.transform.position = spawns[cont].transform.position;
                                 m_Players[i].gameObject.transform.rotation = Quaternion.Euler(0, -90, 0);
 
@@ -262,7 +265,6 @@ public class PolePositionManager : NetworkBehaviour
 
         }
     }
-
     #endregion
 
     private void Update()
@@ -305,6 +307,7 @@ public class PolePositionManager : NetworkBehaviour
     //añade un jugador
     public void AddPlayer(PlayerInfo player)
     {
+        print("Nombre: " + player.Name + " ID: " + player.ID);
         m_Players.Add(player);
         arcLengths = new float[m_Players.Count];
         playerTimes = new float[m_Players.Count];
@@ -341,14 +344,18 @@ public class PolePositionManager : NetworkBehaviour
         public int GetIndex(PlayerInfo pi)
         {
             int index = -1;
+            print("Jugadores en la lista: " + players.Count);
             for (int i = 0; i < players.Count; i++)
             {
+                print("ID del pi:" + pi.ID + " ID de la lista: " + players[i].ID);
                 if (pi.ID == players[i].ID)
                 {
+                    print("Indice encontrado si eso: " + i);
                     index = i;
                     return index;
                 }
             }
+            print("No encontrado, se devuelve -1");
             return index;
         }
     }
@@ -433,9 +440,9 @@ public class PolePositionManager : NetworkBehaviour
             else return -1;
         }
 
-        //Método que recibe un player info, y devuelve su índice en la lista de playerinfos.
-        //Esto es importante porque la posición de cada player info varía en cada iteración si un jugador adelanta a otro, por lo que usar el id para saber la posición en la lista
-        //de un player info como se hacía al principio terminaría dando errores y no detectando bien quien va delante de quien.
+        ////Método que recibe un player info, y devuelve su índice en la lista de playerinfos.
+        ////Esto es importante porque la posición de cada player info varía en cada iteración si un jugador adelanta a otro, por lo que usar el id para saber la posición en la lista
+        ////de un player info como se hacía al principio terminaría dando errores y no detectando bien quien va delante de quien.
         public int GetIndex(PlayerInfo pi)
         {
             int index = -1;
@@ -517,9 +524,9 @@ public class PolePositionManager : NetworkBehaviour
 
                 //print((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])));
                 arcAux[i] = arcLengths[i];
-
-
-                m_Players.Sort(new PlayerInfoComparer(arcLengths, m_Players));
+    
+                if(m_Players[i].LocalPlayer)
+                    m_Players.Sort(new PlayerInfoComparer(arcLengths, m_Players));
 
                 string myRaceOrder = "";
                 int cont = 1;
@@ -556,7 +563,9 @@ public class PolePositionManager : NetworkBehaviour
 
                 //totalTime += Time.deltaTime; //Sigue actualizando el tiempo total de carrera, que se utilizará para los demás jugadores.
                 arcLengths[i] = ComputeCarArcLength(i);
-                m_Players.Sort(new PlayerTimeComparer(playerTimes, m_Players));
+
+                if (m_Players[i].LocalPlayer)
+                    m_Players.Sort(new PlayerTimeComparer(playerTimes, m_Players));
 
                 string myResults = "";
                 int cont = 1;
