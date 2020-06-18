@@ -175,7 +175,7 @@ public class PlayerController : NetworkBehaviour
         SteerHelper();
         SpeedLimiter();
         AddDownForce();
-        TractionControl();
+        //TractionControl();
 
     }
 

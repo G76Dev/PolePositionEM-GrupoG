@@ -21,7 +21,7 @@ public class SetupPlayer : NetworkBehaviour
     public PlayerController m_PlayerController;
     private CheckpointController m_checkPointController;
     private UIManager m_UImanager;
-    private PlayerInfo m_PlayerInfo;
+    public PlayerInfo m_PlayerInfo;
     private PolePositionManager m_PolePositionManager;
 
     //almacenamos el script de selecion del modelo del coche

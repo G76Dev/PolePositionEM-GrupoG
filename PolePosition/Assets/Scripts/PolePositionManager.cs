@@ -278,8 +278,9 @@ public class PolePositionManager : NetworkBehaviour
             if (!setupPlayer.gameObject.GetComponent<PlayerInfo>().hasEnded)
             {
                 tempTime += Time.deltaTime;
-                totalTime += Time.deltaTime;
             }
+            totalTime += Time.deltaTime;
+            
 
             timer += Time.deltaTime;
             updateReconProgress();
@@ -289,9 +290,9 @@ public class PolePositionManager : NetworkBehaviour
             if (!setupPlayer.gameObject.GetComponent<PlayerInfo>().hasEnded)
             {
                 tempTime += Time.deltaTime;
-                totalTime += Time.deltaTime;
             }
-            
+            totalTime += Time.deltaTime;
+
             timer += Time.deltaTime;
             UpdateRaceProgress();
         }     
@@ -327,7 +328,13 @@ public class PolePositionManager : NetworkBehaviour
 
         public PlayerInfoComparer(float[] arcLengths, List<PlayerInfo> par_players)
         {
-            m_ArcLengths = arcLengths;
+            m_ArcLengths = new float[arcLengths.Length];
+
+            for (int i = 0; i < arcLengths.Length; i++)
+            {
+                m_ArcLengths[i] = arcLengths[i];
+            }
+
             players = new List<PlayerInfo>();
             foreach (PlayerInfo info in par_players)
             {
@@ -433,8 +440,16 @@ public class PolePositionManager : NetworkBehaviour
 
         public PlayerTimeComparer(float[] playerTimes, List<PlayerInfo> par_players)
         {
-            m_playerTimes = playerTimes;
-            players = par_players;
+            m_playerTimes = new float[playerTimes.Length];
+            for (int i = 0; i < playerTimes.Length; i++)
+            {
+                m_playerTimes[i] = playerTimes[i];
+            }
+            players = new List<PlayerInfo>();
+            foreach (PlayerInfo player in par_players)
+            {
+                players.Add(player);
+            }
         }
 
         public override int Compare(PlayerInfo x, PlayerInfo y)
@@ -466,7 +481,7 @@ public class PolePositionManager : NetworkBehaviour
     {
         // Update car arc-lengths
         //arcLengths = new float[m_Players.Count]; //Es MUY ineficiente que se declare un nuevo array en cada frame
-        //Solo seria necesario aumentar el tamaño del array cada vez que se añade o se quita un jugador.
+        //Solo seria necesario aumentar el tamaño del array cada vez que se añade o se quita un jugador.      
 
         for (int i = 0; i < m_Players.Count; ++i)
         {
@@ -528,10 +543,7 @@ public class PolePositionManager : NetworkBehaviour
 
                 //print((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])));
                 arcAux[i] = arcLengths[i];
-    
-                if(m_Players[i].LocalPlayer)
-                    m_Players.Sort(new PlayerInfoComparer(arcLengths, m_Players));
-
+                 
                 string myRaceOrder = "";
                 int cont = 1;
                 foreach (var _player in m_Players)
@@ -567,9 +579,6 @@ public class PolePositionManager : NetworkBehaviour
 
                 //totalTime += Time.deltaTime; //Sigue actualizando el tiempo total de carrera, que se utilizará para los demás jugadores.
                 arcLengths[i] = ComputeCarArcLength(i);
-
-                if (m_Players[i].LocalPlayer)
-                    m_Players.Sort(new PlayerTimeComparer(playerTimes, m_Players));
 
                 string myResults = "";
                 int cont = 1;
@@ -631,6 +640,17 @@ public class PolePositionManager : NetworkBehaviour
                     updateResults(myResults);
 
             }
+        }
+
+        if (!setupPlayer.m_PlayerInfo.hasEnded)
+        {
+            m_Players.Sort(new PlayerInfoComparer(arcLengths, m_Players));
+            print("Actualizar por pos");
+        }
+        else
+        {
+            m_Players.Sort(new PlayerTimeComparer(playerTimes, m_Players));
+            print("Actualizar por tiempo");
         }
 
     }
