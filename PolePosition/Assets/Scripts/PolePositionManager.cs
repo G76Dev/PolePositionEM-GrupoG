@@ -328,7 +328,11 @@ public class PolePositionManager : NetworkBehaviour
         public PlayerInfoComparer(float[] arcLengths, List<PlayerInfo> par_players)
         {
             m_ArcLengths = arcLengths;
-            players = par_players;
+            players = new List<PlayerInfo>();
+            foreach (PlayerInfo info in par_players)
+            {
+                players.Add(info);
+            }           
         }
 
         public override int Compare(PlayerInfo x, PlayerInfo y)
