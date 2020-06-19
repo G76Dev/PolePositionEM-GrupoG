@@ -2005,6 +2005,7 @@ GameObject:
   - component: {fileID: 331775735}
   - component: {fileID: 331775737}
   - component: {fileID: 331775736}
+  - component: {fileID: 331775738}
   m_Layer: 0
   m_Name: '@Custom Network Manager'
   m_TagString: Untagged
@@ -2097,6 +2098,21 @@ MonoBehaviour:
   m_PlayerController: {fileID: 0}
   m_PlayerInfo: {fileID: 0}
   m_MirrorManager: {fileID: 0}
+--- !u!114 &331775738
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 331775734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6442dc8070ceb41f094e44de0bf87274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  showGUI: 1
+  offsetX: 0
+  offsetY: 0
 --- !u!1 &352095953 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100000, guid: d36d433c4da1bd34a9536625d1c17b1a,
@@ -10872,7 +10888,7 @@ MonoBehaviour:
   postGameBackground: {fileID: 100563131}
   m_CircuitController: {fileID: 0}
   totalTime: 0
-  reconocimiento: 1
+  clasification: 1
   isRaceEnded: 0
   currentCrashed: 0
 --- !u!4 &1839589614
