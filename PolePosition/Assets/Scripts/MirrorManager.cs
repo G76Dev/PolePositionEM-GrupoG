@@ -23,43 +23,63 @@ public class MirrorManager : NetworkBehaviour
     }
 
     //-------------------------
-        //COMANDOS
+    //COMANDOS
     //-------------------------
     //Los commands se ejecutan aquí porque solamente los scripts asociados al prefab del jugador pueden enviar mensajes Command al servidor en esta version de Mirror.
     //Para poder hacerlo desde otros scripts, esos scripts contendrán una referencia directa al SetupPlayer del jugador local de ese cliente/servidor,
     //y desde aquí ejecutarán el comando necesario utilizando la referencia directa a este script.
 
+    /// <summary>
+    /// Llama a un Rpc para el comienzo de la partida.
+    /// </summary>
     [Command]
     public void CmdStartRace()
     {
         m_PolePositionManager.RpcStartRace();
     }
 
+    /// <summary>
+    /// Llama a un rpc para gestionar el comienzo de la partida.
+    /// </summary>
     [Command]
     public void CmdPlayerReady()
     {
         m_PolePositionManager.RpcManageStart();
     }
 
+    /// <summary>
+    /// Método que sirve para imprimir por consola del servidor datos que no están en el mismo.
+    /// </summary>
+    /// <param name="value"></param>
     [Command]
     public void CmdPrintServer(string value)
     {
         print(value);
     }
 
+    /// <summary>
+    /// Llama a un Rpc para jugar otra vez.
+    /// </summary>
     [Command]
     public void CmdPlayAgain()
     {
         m_PolePositionManager.RpcPlayAgain();
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     [Command]
     public void CmdEndRace()
     {
 
     }
 
-    //metodos para eliminar la deriva del coche local y los otros que visualiza
+    /// <summary>
+    /// Métodos para eliminar la deriva del coche local y los otros que visualiza.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="friction"></param>
     [ClientRpc]
     private void RpcFric(int id, float friction)
     {
@@ -84,6 +104,12 @@ public class MirrorManager : NetworkBehaviour
         }
         
     }
+
+    /// <summary>
+    /// Sirve para que cada jugador local mande su friccion al resto, para que a todos se les aplique igual.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="friction"></param>
     [Command]
     public void CmdFric(int id, float friction)
     {
