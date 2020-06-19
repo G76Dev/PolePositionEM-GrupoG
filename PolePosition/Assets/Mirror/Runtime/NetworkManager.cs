@@ -40,6 +40,10 @@ namespace Mirror
         [Tooltip("Should the server or client keep running in the background?")]
         public bool runInBackground = true;
 
+ 
+
+
+
         /// <summary>
         /// Automatically invoke StartServer()
         /// <para>If the application is a Server Build or run with the -batchMode command line arguement, StartServer is automatically invoked.</para>
@@ -621,6 +625,8 @@ namespace Mirror
 
             CleanupNetworkIdentities();
         }
+
+        
 
         /// <summary>
         /// called when quitting the application by closing the window / pressing stop in the editor
@@ -1464,7 +1470,10 @@ namespace Mirror
         /// <summary>
         /// This is called when a client is stopped.
         /// </summary>
-        public virtual void OnStopClient() { }
+        public virtual void OnStopClient() 
+        {
+
+        }
 
         /// <summary>
         /// This is called when a host is stopped.

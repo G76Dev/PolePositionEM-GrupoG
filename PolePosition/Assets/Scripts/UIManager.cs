@@ -5,13 +5,15 @@ using Mirror;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class UIManager : MonoBehaviour
+public class UIManager : NetworkBehaviour
 {
     public bool showGUI = true;
 
     private NetworkManager m_NetworkManager;
+    //private NetworkController m_NetworkController;
     private PolePositionManager m_PolePositionManager;
-    private MirrorManager m_mirrorManager;
+    public MirrorManager m_mirrorManager;
+    [SyncVar] int playAgainCounter;
 
     public String userName;//string donde almacenar el nombre del jugador que posteriormente pasaremos al playerInfo
 
@@ -39,20 +41,34 @@ public class UIManager : MonoBehaviour
 
     [Header("End Results HUD")]
     [SerializeField]
-    private GameObject endResults;
-
+    private GameObject endResults;
+
     [SerializeField] private Text endText;
+    [SerializeField] private Text stateText;
+    [SerializeField] private Button playAgainButton;
+    [SerializeField] private Button returnToMenuButton;
+    [SerializeField] private Text playAgainText;
+    [SerializeField] private GameObject playAgainWindow;
 
 
     //Delegate events
     public delegate void SyncStart();
 
-    public event SyncStart PlayerReadyEvent;
+    public event SyncStart PlayerReadyEvent;
+
+    public delegate void RestartRace();
+
+    public event RestartRace RestartRaceEvent;
+
+    public delegate void PlayerDisconnect();
+
+    public event PlayerDisconnect ReturnToMainMenuEvent;
 
 
     private void Awake()
     {
         m_NetworkManager = FindObjectOfType<NetworkManager>();
+        //m_NetworkController = FindObjectOfType<NetworkController>();
         m_PolePositionManager = FindObjectOfType<PolePositionManager>();
     }
 
@@ -63,27 +79,38 @@ public class UIManager : MonoBehaviour
         buttonClient.onClick.AddListener(() => StartClient());
         buttonServer.onClick.AddListener(() => StartServer());
         readyButton.onClick.AddListener(() => playerIsReady());
+        returnToMenuButton.onClick.AddListener(() => returnToMainMenu());
+        playAgainButton.onClick.AddListener(() =>
+        {
+            m_mirrorManager.CmdPlayAgain();
+            playAgainButton.interactable = false;
+        });
         ActivateMainMenu();
         textCrash.transform.parent.gameObject.SetActive(false);
         textMarchaAtras.transform.parent.gameObject.SetActive(false);
     }
 
-    public void StartClasificationLap()
-    {
-        HideReadyButton();
-        textPosition.gameObject.transform.parent.gameObject.SetActive(false);
-        textOrder.gameObject.transform.parent.gameObject.SetActive(false);
+    public void StartClasificationLap()
+    {
+        HideReadyButton();
+        textPosition.gameObject.transform.parent.gameObject.SetActive(false);
+        textOrder.gameObject.transform.parent.gameObject.SetActive(false);
     }
-    public void FinishClasificationLap()
-    {
-        readyButton.gameObject.SetActive(true);
-        textPosition.gameObject.transform.parent.gameObject.SetActive(true);
-        textOrder.gameObject.transform.parent.gameObject.SetActive(true);
+    public void FinishClasificationLap()
+    {
+        readyButton.gameObject.SetActive(true);
+        textPosition.gameObject.transform.parent.gameObject.SetActive(true);
+        textOrder.gameObject.transform.parent.gameObject.SetActive(true);
     }
 
-    public void UpdateEndResults(string results)
-    {
-        endText.text = results;
+    public void UpdateEndResults(string results)
+    {
+        endText.text = results;
+    }
+
+    public void UpdateStateResult()
+    {
+        stateText.text = "RACE ENDED. ALL PLAYERS MADE IT";
     }
 
     public void UpdateSpeed(int speed)
@@ -97,25 +124,25 @@ public class UIManager : MonoBehaviour
     }
 
     public void UpdateLap(int lap, double currentTime, double totalTime, int totalLaps)
-    {
-
-        textLaps.text = "Current lap: " + lap + "/ " + totalLaps + "\n"; //Cambiar MAX LAPS por una variable que almacene el numero de vueltas a recorrer. 
-        textLaps.text += "Time of this lap: " + "\n" + currentTime + "\n";
-        textLaps.text += "Total time: " + "\n" + totalTime;
+    {
+
+        textLaps.text = "Current lap: " + lap + "/ " + totalLaps + "\n"; //Cambiar MAX LAPS por una variable que almacene el numero de vueltas a recorrer. 
+        textLaps.text += "Time of this lap: " + "\n" + currentTime + "\n";
+        textLaps.text += "Total time: " + "\n" + totalTime;
     }
 
-    public void UpdateClasLap(double currentTime)
-    {
-        textLaps.text = "Clasification Lap" + "\n";
-        textLaps.text += "Time of the lap: " + "\n" + currentTime + "\n";
+    public void UpdateClasLap(double currentTime)
+    {
+        textLaps.text = "Clasification Lap" + "\n";
+        textLaps.text += "Time of the lap: " + "\n" + currentTime + "\n";
     }
 
-    public void UpdateOrder(string newOrder)
-    {
-        textOrder.text = newOrder;
+    public void UpdateOrder(string newOrder)
+    {
+        textOrder.text = newOrder;
     }
 
-    private void ActivateMainMenu()
+    public void ActivateMainMenu()
     {
         mainMenu.SetActive(true);
         inGameHUD.SetActive(false);
@@ -141,16 +168,73 @@ public class UIManager : MonoBehaviour
         }
     }
     
-    public void alternateCrash(bool newVal)
-    {
-        textCrash.transform.parent.gameObject.SetActive(newVal);
+    public void alternateCrash(bool newVal)
+    {
+        textCrash.transform.parent.gameObject.SetActive(newVal);
+    }
+    /// <summary>
+    /// Suscrito al evento AllPlayersEndedEvent, habilita el botón de "play again" solamente cuando todos los demás jugadores hayan terminado la presente carrera.
+    /// </summary>
+    public void canPlayAgain()
+    {
+        //Activa el botón en la interfaz
+        playAgainButton.interactable = true;
+
     }
 
-    public void alternateMarchaAtras(bool newVal)
-    {
-        textMarchaAtras.transform.parent.gameObject.SetActive(newVal);
+    public void alternateMarchaAtras(bool newVal)
+    {
+        textMarchaAtras.transform.parent.gameObject.SetActive(newVal);
+    }
+    /// <summary>
+    /// Se encarga de gestionar la cantidad de jugadores que quieren jugar otra partida en todos los clientes.
+    /// Esto implica activar la ventana correspondiente, actualizar el número de jugadores que quieren jugar otra vez, y si estos son mayoría,
+    /// lanza el evento que reinicia la partida completa.
+    /// </summary>
+    public void playAgain()
+    {
+
+        playAgainText.text = playAgainCounter + " / " + m_PolePositionManager.numPlayers +  " PLAYERS " + "\n WANT TO PLAY AGAIN";
+
+        if(playAgainCounter > m_PolePositionManager.numPlayers/2)
+        {
+            print("COMENZANDO DE NUEVO LA CARRERA");
+            if (RestartRaceEvent != null)
+                RestartRaceEvent();
+        }
+
     }
 
+    public void addPlayAgainCounter()
+    {
+        playAgainCounter++;
+        if (!playAgainWindow.activeSelf)
+            playAgainWindow.SetActive(true);
+
+    }
+
+    private void returnToMainMenu()
+    {
+        ActivateMainMenu();
+
+        //To Do: llamar a una funcion que se encargue de gestionar la desconexión en caso de que sea cliente y en caso de que sea servidor
+        if(ReturnToMainMenuEvent != null)
+        {
+            ReturnToMainMenuEvent();
+        }
+
+        if (m_mirrorManager.isClient)
+        {
+            m_PolePositionManager.QuitPlayer(m_PolePositionManager.setupPlayer.m_PlayerInfo);
+            m_NetworkManager.StopClient();
+        } 
+        else
+        {
+            m_NetworkManager.StopServer();
+        }
+
+        //m_NetworkManager.StopClient();
+    }
     public void HideReadyButton()
     {
         readyButton.gameObject.SetActive(false);

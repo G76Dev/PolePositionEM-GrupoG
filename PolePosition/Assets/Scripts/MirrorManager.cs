@@ -10,7 +10,6 @@ public class MirrorManager : NetworkBehaviour
     private UIManager m_UIManager;
     private NetworkManager m_NetworkManager;
     private PlayerController m_PlayerController;
-    private UIManager m_UImanager;
     private PlayerInfo m_PlayerInfo;
     private PolePositionManager m_PolePositionManager;
 
@@ -19,7 +18,6 @@ public class MirrorManager : NetworkBehaviour
         m_PlayerInfo = GetComponent<PlayerInfo>();
         m_PlayerController = GetComponent<PlayerController>();
         m_NetworkManager = FindObjectOfType<NetworkManager>();
-        m_UImanager = FindObjectOfType<UIManager>();
         m_PolePositionManager = FindObjectOfType<PolePositionManager>();
         m_UIManager = FindObjectOfType<UIManager>();
     }
@@ -34,7 +32,6 @@ public class MirrorManager : NetworkBehaviour
     [Command]
     public void CmdStartRace()
     {
-        //print("Hola soy un COMMAND");
         m_PolePositionManager.RpcStartRace();
     }
 
@@ -45,8 +42,17 @@ public class MirrorManager : NetworkBehaviour
     }
 
 
+    [Command]
+    public void CmdPlayAgain()
+    {
+        m_PolePositionManager.RpcPlayAgain();
+    }
 
+    [Command]
+    public void CmdEndRace()
+    {
 
+    }
 
 
     // Start is called before the first frame update

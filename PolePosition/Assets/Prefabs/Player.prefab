@@ -180,6 +180,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
+  m_NetworkManager: {fileID: 0}
   m_PlayerController: {fileID: 0}
 --- !u!114 &3466774584401487325
 MonoBehaviour:
@@ -221,9 +222,10 @@ MonoBehaviour:
   maxSteeringAngle: 15
   engineBrake: 1e+12
   footBrake: 1e+24
-  topSpeed: 200
+  topSpeed: 400
   downForce: 1000
   slipLimit: 0.2
+  localMove: 1
   canMove: 0
   crashTimer: 0
 --- !u!114 &6346869062069434778

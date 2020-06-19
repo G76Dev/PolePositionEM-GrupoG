@@ -6,10 +6,11 @@ public class CheckpointController : MonoBehaviour
 {
     private PlayerInfo m_PlayerInfo;
     private PlayerController m_PlayerController;
-    private PolePositionManager m_PoleManager;
+    private PolePositionManager m_PoleManager;
     private UIManager m_UImanager;
 
     [HideInInspector] GameObject checkpointList;
+
 
 
 
@@ -23,7 +24,7 @@ public class CheckpointController : MonoBehaviour
     {
         m_PoleManager = FindObjectOfType<PolePositionManager>();
         m_PlayerController = GetComponent<PlayerController>();
-        m_PlayerInfo = GetComponent<PlayerInfo>();
+        m_PlayerInfo = GetComponent<PlayerInfo>();
         m_UImanager = FindObjectOfType<UIManager>();
         m_PlayerInfo.checkpointCount = 0;
     }
@@ -50,31 +51,24 @@ public class CheckpointController : MonoBehaviour
 
                 if (m_PlayerInfo.checkpointCount == checkpointList.transform.childCount)
                 {
-                    if (!m_PoleManager.reconocimiento)
-                    {
-                        m_PlayerInfo.CurrentLap++;
-                    }
-                    else
-                    {
-                        if (m_PlayerInfo.LocalPlayer)
-                        {
-                            m_PoleManager.reconocimiento = false;
-                            m_PoleManager.UpdateServerReconTime(m_PlayerInfo.ID);
-                            m_UImanager.FinishClasificationLap();
-                        }                       
+                    if (!m_PoleManager.reconocimiento)
+                    {
+                        m_PlayerInfo.CurrentLap++;
+                    }
+                    else
+                    {
+                        if (m_PlayerInfo.LocalPlayer)
+                        {
+                            m_PoleManager.reconocimiento = false;
+                            m_PoleManager.UpdateServerReconTime(m_PlayerInfo.ID);
+                            m_UImanager.FinishClasificationLap();
+                        }                       
                     }
                     
 
                     if(m_PlayerInfo.CurrentLap >= m_PoleManager.totalLaps)
-                    {
-                        if (endRaceEvent != null)
-                            endRaceEvent();
-
-                        m_PlayerController.canMove = false; //El jugador que haya superado la carrera se dejará de mover.
-                        //To do: teletransportar al podio
-                        m_PlayerInfo.totalTime = m_PoleManager.totalTime;
-                        m_PlayerInfo.hasEnded = true;
-                        m_PoleManager.isRaceEnded = true;
+                    {
+                        EndRace();
 
                         return;
                     }
@@ -89,12 +83,39 @@ public class CheckpointController : MonoBehaviour
             }
 
         }
-    }
-
-
-    // Update is called once per frame
+    }
+
+    public void EndClasificactionLap()
+    {
+        m_PoleManager.reconocimiento = false;
+        m_PoleManager.UpdateServerReconTime(m_PlayerInfo.ID);
+    }
+
+    public void EndRace()
+    {
+        m_PlayerController.canMove = false; //El jugador que haya superado la carrera se dejará de mover.
+                                            //To do: teletransportar al podio
+
+
+
+        m_PlayerInfo.totalTime = m_PoleManager.totalTime;
+        //To do: enviar el tiempo a los demás jugadores.
+
+
+        m_PlayerInfo.hasEnded = true;
+        m_PoleManager.isRaceEnded = true;
+
+        m_PoleManager.managePlayersEnded();
+        m_PoleManager.updatePodium();
+
+        if (endRaceEvent != null)
+            endRaceEvent();
+    }
+
+
+    // Update is called once per frame
     void Update()
     {
-        
+
     }
 }
