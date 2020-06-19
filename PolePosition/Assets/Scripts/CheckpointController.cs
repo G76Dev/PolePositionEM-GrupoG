@@ -84,13 +84,17 @@ public class CheckpointController : MonoBehaviour
 
         }
     }
-
+    /// <summary>
+    /// Método para cuando termina la vuelta de clasificación.
+    /// </summary>
     public void EndClasificactionLap()
     {
         m_PoleManager.clasification = false;
         m_PoleManager.UpdateServerClasTime(m_PlayerInfo.ID);
     }
-
+    /// <summary>
+    /// Método para cuando termina la partida.
+    /// </summary>
     public void EndRace()
     {
         m_PlayerController.canMove = false; //El jugador que haya superado la carrera se dejará de mover.
