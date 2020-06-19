@@ -754,8 +754,6 @@ public class PolePositionManager : NetworkBehaviour
     {
         setupPlayer.CmdFinishClas(tempTime, ID);
         playerController.localMove = false;
-        tempTime = 0;
-        totalTime = 0;
     }
 
 
