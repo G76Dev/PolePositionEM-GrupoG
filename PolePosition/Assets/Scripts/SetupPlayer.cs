@@ -84,9 +84,9 @@ public class SetupPlayer : NetworkBehaviour
             m_checkPointController.endRaceEvent += m_UIManager.endResultsHUD;
         }
 
-        //Añade el jugador a la lista en todos los clientes y servidor
-        m_PolePositionManager.numPlayers++;
-        m_PolePositionManager.AddPlayer(m_PlayerInfo);
+        //Añade el jugador a la lista en todos los clientes y servidor
+        m_PolePositionManager.AddPlayer(m_PlayerInfo);
+        //m_PolePositionManager.numPlayers++;
         print("JUGADOR AÑADIDO. JUGADORES ACTUALIZADOS: " + m_PolePositionManager.numPlayers);           
     }
 

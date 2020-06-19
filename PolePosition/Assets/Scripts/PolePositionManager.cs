@@ -18,7 +18,7 @@ public class PolePositionManager : NetworkBehaviour
     [SyncVar] public int numPlayers = 0;//numero de jugadores
     [SyncVar] public int actualPlayerID = 0;
     [SyncVar] int reconFinished = 0;
-    [SyncVar] [HideInInspector] int playersReady; 
+    [HideInInspector] int playersReady = 0; 
     [SyncVar] [HideInInspector] int playersEnded;
 
     SyncDictionaryIntFloat clasTimes = new SyncDictionaryIntFloat();
@@ -159,7 +159,7 @@ public class PolePositionManager : NetworkBehaviour
     //GetComponent<NetworkIdentity>().AssignClientAuthority(this.GetComponent<NetworkIdentity>().connectionToClient);
     //Esta linea se usa en caso de que un command no funcione, pero teoricamente nunca es necesaria
 
-    void ManageStart()
+    void ManageStart()
     {
         mirrorManager.CmdPlayerReady(); //Llama al Command en setupPlayer que se encargará de llamar a "RpcManageStart" en este script
     }
@@ -176,11 +176,11 @@ public class PolePositionManager : NetworkBehaviour
     //mediante referencia directa de componentes.
     [ClientRpc]
     public void RpcStartRace()
-    {
+    {        mirrorManager.CmdPrintServer("Se entra al rpc final");
         if (!hasStarted)
-        {
+        {            
             setupPlayer.m_PlayerController.canMove = true; //Actualiza el bool canMove en el playerController del jugador de este cliente, gracias a que el PolePositionManager de cada cliente guarda una referencia al jugador local de ese cliente
-
+            mirrorManager.CmdPrintServer("Se entra al if dentro del rpc final");
             if (StartRaceEvent != null)
                 StartRaceEvent();
 
@@ -194,13 +194,11 @@ public class PolePositionManager : NetworkBehaviour
     {
         playersReady++; //Suma un jugador listo
         //print("JUGADORES LISTOS: " + playersReady);
-
+        mirrorManager.CmdPrintServer("playersready: " + playersReady + " numplayers: " + numPlayers);
         if (playersReady >= numPlayers) //Si los jugadores preparados igualan o superan a la cantidad de jugadores,
-        {
+        {            mirrorManager.CmdPrintServer("Se entra al if");
             initialPlayers = playersReady; //Se utilizará para saber cuando acabar la partida por abandono
-
-            if (isServer) //Si es el servidor
-                mirrorManager.CmdStartRace(); //Llama al Command que más tarde llamará al RpcStartRace de este script
+            mirrorManager.CmdStartRace(); //Llama al Command que más tarde llamará al RpcStartRace de este script
         }
     }
 
@@ -600,7 +598,6 @@ public class PolePositionManager : NetworkBehaviour
 
 
                 tempTime += Time.deltaTime;
-                m_Players[i].totalTime = totalTime += Time.deltaTime;
 
                 arcLengths[i] = ComputeCarArcLength(i);
                 //print("ORIGINAL: " + i + " " +  arcLengths[i]);

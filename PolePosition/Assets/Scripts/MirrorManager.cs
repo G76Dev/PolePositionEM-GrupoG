@@ -41,6 +41,11 @@ public class MirrorManager : NetworkBehaviour
         m_PolePositionManager.RpcManageStart();
     }
 
+    [Command]
+    public void CmdPrintServer(string value)
+    {
+        print(value);
+    }
 
     [Command]
     public void CmdPlayAgain()

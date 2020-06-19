@@ -60,7 +60,6 @@ public class NetworkController : NetworkManager
         //Aqui se podría hacer las gestiones que se hacian hasta ahora en el setupPlayer
         m_PolePositionManager.numPlayers++;
         print("NETWORK MANAGER: Jugador añadido");
-
         base.OnServerAddPlayer(conn);
     }
 
