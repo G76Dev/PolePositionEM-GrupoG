@@ -48,9 +48,11 @@ public class PlayerController : NetworkBehaviour
     private float InputBrake { get; set; }
 
     private PlayerInfo m_PlayerInfo;
+    public MirrorManager m_Mirror;
     private PolePositionManager m_PoleManager;
     private CheckpointController m_CheckPointController;
 
+    private WheelFrictionCurve friction;
 
     private Rigidbody m_Rigidbody;
     private float m_SteerHelper = 0.8f;
@@ -88,7 +90,9 @@ public class PlayerController : NetworkBehaviour
         //Esta variable no se usa de momento
         m_PlayerInfo = GetComponent<PlayerInfo>();
         m_PlayerInfo.checkpointCount = 0;
-
+        //control de friccion
+        friction = axleInfos[0].rightWheel.sidewaysFriction;
+        friction.extremumSlip = 0.3f;
     }
 
     private void Start()
@@ -143,9 +147,26 @@ public class PlayerController : NetworkBehaviour
         InputBrake = Mathf.Clamp(InputBrake, 0, 1);
 
         float steering = maxSteeringAngle * InputSteering;
-
-        foreach (AxleInfo axleInfo in axleInfos)
-        {
+        if (m_Rigidbody.velocity.magnitude < 0.3)
+        {
+            friction.extremumSlip = 0.3f;
+            if(axleInfos[0].leftWheel.sidewaysFriction.extremumSlip != 0.3)
+            {
+                m_Mirror.CmdFric(m_PlayerInfo.ID, 0.3f);
+            }
+        }
+        else
+        {
+            friction.extremumSlip = 0.2f;
+            if (axleInfos[0].leftWheel.sidewaysFriction.extremumSlip != 0.2)
+            {
+                m_Mirror.CmdFric(m_PlayerInfo.ID, 0.2f);
+            }
+        }
+
+        foreach (AxleInfo axleInfo in axleInfos)
+        {
+            
             if (axleInfo.steering)
             {
                 axleInfo.leftWheel.steerAngle = steering;
@@ -184,16 +205,16 @@ public class PlayerController : NetworkBehaviour
                     axleInfo.rightWheel.brakeTorque = footBrake;
                 }
             }
-
+            axleInfo.rightWheel.sidewaysFriction = friction;
+
+            axleInfo.leftWheel.sidewaysFriction = friction;
             ApplyLocalPositionToVisuals(axleInfo.leftWheel);
             ApplyLocalPositionToVisuals(axleInfo.rightWheel);
         }
-
         SteerHelper();
         SpeedLimiter();
         AddDownForce();
         //TractionControl();
-
     }
 
     #endregion

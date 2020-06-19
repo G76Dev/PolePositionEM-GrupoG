@@ -51,7 +51,7 @@ public class CheckpointController : MonoBehaviour
 
                 if (m_PlayerInfo.checkpointCount == checkpointList.transform.childCount)
                 {
-                    if (!m_PoleManager.reconocimiento)
+                    if (!m_PoleManager.clasification)
                     {
                         m_PlayerInfo.CurrentLap++;
                     }
@@ -59,8 +59,8 @@ public class CheckpointController : MonoBehaviour
                     {
                         if (m_PlayerInfo.LocalPlayer)
                         {
-                            m_PoleManager.reconocimiento = false;
-                            m_PoleManager.UpdateServerReconTime(m_PlayerInfo.ID);
+                            m_PoleManager.clasification = false;
+                            m_PoleManager.UpdateServerClasTime(m_PlayerInfo.ID);
                             m_UImanager.FinishClasificationLap();
                         }                       
                     }
@@ -87,8 +87,8 @@ public class CheckpointController : MonoBehaviour
 
     public void EndClasificactionLap()
     {
-        m_PoleManager.reconocimiento = false;
-        m_PoleManager.UpdateServerReconTime(m_PlayerInfo.ID);
+        m_PoleManager.clasification = false;
+        m_PoleManager.UpdateServerClasTime(m_PlayerInfo.ID);
     }
 
     public void EndRace()

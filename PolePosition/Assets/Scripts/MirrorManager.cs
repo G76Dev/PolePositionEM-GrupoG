@@ -59,6 +59,55 @@ public class MirrorManager : NetworkBehaviour
 
     }
 
+    //metodos para eliminar la deriva del coche local y los otros que visualiza
+    [ClientRpc]
+    private void RpcFric(int id, float friction)
+    {
+        int index = -1;
+        for (int i = 0; i < m_PolePositionManager.m_Players.Count; i++)
+        {
+            if (m_PolePositionManager.m_Players[i].ID == id)
+            {
+                index = i;
+            }
+        }
+
+        if (index != -1)
+        {
+            WheelFrictionCurve fric = m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].rightWheel.sidewaysFriction;
+            fric.extremumSlip = friction;
+            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].rightWheel.sidewaysFriction = fric;
+            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].leftWheel.sidewaysFriction = fric;
+            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[1].rightWheel.sidewaysFriction = fric;
+            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[1].leftWheel.sidewaysFriction = fric;
+            print("Dentro de la drriva del host");
+        }
+        
+    }
+    [Command]
+    public void CmdFric(int id, float friction)
+    {
+        int index = -1;
+        for (int i = 0; i < m_PolePositionManager.m_Players.Count; i++)
+        {
+            if(m_PolePositionManager.m_Players[i].ID == id)
+            {
+                index = i;
+            }
+        }
+
+        if (index != -1)
+        {
+            WheelFrictionCurve fric = m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].rightWheel.sidewaysFriction;
+            fric.extremumSlip = friction;
+            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].rightWheel.sidewaysFriction = fric;
+            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].leftWheel.sidewaysFriction = fric;
+            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[1].rightWheel.sidewaysFriction = fric;
+            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[1].leftWheel.sidewaysFriction = fric;
+            RpcFric(id, friction);
+            print("Dentro de la drriva del cliente");
+        }
+    }
 
     // Start is called before the first frame update
     void Start()

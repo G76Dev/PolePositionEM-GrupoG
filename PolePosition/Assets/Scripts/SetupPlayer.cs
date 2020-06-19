@@ -65,7 +65,7 @@ public class SetupPlayer : NetworkBehaviour
             m_PolePositionManager.setupPlayer = this;
             m_PolePositionManager.mirrorManager = GetComponent<MirrorManager>();
             m_PolePositionManager.playerController = GetComponent<PlayerController>();
-            m_UIManager.m_mirrorManager = GetComponent<MirrorManager>();
+            m_UIManager.m_mirrorManager = GetComponent<MirrorManager>();            m_PlayerController.m_Mirror = GetComponent<MirrorManager>();
             m_networkController = FindObjectOfType<NetworkController>();
             m_networkController.m_PlayerInfo = m_PlayerInfo;
             m_networkController.m_PlayerController = m_PlayerController;
@@ -178,19 +178,24 @@ public class SetupPlayer : NetworkBehaviour
 
     //Sirve para ejecutar el command de polePosition desde un objeto con permisos para ello (el jugador local)
     [Command]
-    public void CmdFinishRecon(float time, int ID)
+    public void CmdFinishClas(float time, int ID)
     {
-        m_PolePositionManager.UpdateReconTime(time, ID);
+        m_PolePositionManager.UpdateClasTime(time, ID);
     }
 
+
+    //Método, que se activará por un evento, para cambiar la velocidad en la interfaz.
     void OnSpeedChangeEventHandler(float speed)
     {
         m_UIManager.UpdateSpeed((int) speed * 5); // 5 for visualization purpose (km/h)
     }
 
-    void OnOrderChangeEventHandler(string newOrder)
-    {
-        m_UIManager.UpdateOrder(newOrder);
+
+    //Método, llamado por un evento, que mostrará en la interfaz el orden de los jugadores en la carrera en el estado actual de la misma.
+    //El ordén se cálcula en otro sitio.
+    void OnOrderChangeEventHandler(string newOrder)
+    {
+        m_UIManager.UpdateOrder(newOrder);
     }
 
     //Actualizamos el valor de la posición en la interfaz del jugador.
@@ -211,6 +216,7 @@ public class SetupPlayer : NetworkBehaviour
         m_UIManager.UpdateClasLap(currentTime);
     }
 
+    //Método, llamado por un evento cuando termina la partida, que muestra por pantalla los resultados de la carrera.
     void OnRaceEndEventHandler(string results)
     {
         m_UIManager.UpdateEndResults(results);
@@ -223,8 +229,7 @@ public class SetupPlayer : NetworkBehaviour
 
 
 
-    //esta funcion nos permite establecer el color del coche de acuerdo a un switch
-    //la intencion es que contenga los colores lo mas parecido a los modelos que se usan dentro del juego
+    //Esta funcion nos permite establecer el color del coche de acuerdo a un switch.
     void Material(int n)
     {
         switch (n)
@@ -259,6 +264,8 @@ public class SetupPlayer : NetworkBehaviour
         m_Name = nombre;
     }
 
+    //Función que se ejecuta en el servidor para actualizar el valor del ID de un jugador.
+    //Llamá a una función del PolePositionManager del servidor, que asigna un ID al jugador en función del orden en el que se conectan.
     [Command]
     void CmdUpdateActualIDPlayer()
     {
@@ -286,12 +293,15 @@ public class SetupPlayer : NetworkBehaviour
         print("ID: " + nuevoID);
     }
 
+
+    //Función que activa o desactiva el aviso de que el coche no está apoyado bien en la carretera.
     void UpdateCrashedUI(bool newVal)
     {
         print("UI Crashed");
         m_UIManager.alternateCrash(newVal);
     }
 
+    //Función que activa o desactiva el aviso de que el coche va marcha atras.
     void UpdateBackDirectionUI(bool newVal)
     {
         print("UI back direction");

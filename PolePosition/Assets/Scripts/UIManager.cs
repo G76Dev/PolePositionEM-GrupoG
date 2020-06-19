@@ -72,7 +72,6 @@ public class UIManager : NetworkBehaviour
         m_PolePositionManager = FindObjectOfType<PolePositionManager>();
     }
 
-
     private void Start()
     {
         buttonHost.onClick.AddListener(() => StartHost());
@@ -90,12 +89,19 @@ public class UIManager : NetworkBehaviour
         textMarchaAtras.transform.parent.gameObject.SetActive(false);
     }
 
+    /// <summary>
+    /// Método llamado al iniciar la vuelta de clasificación, para que no se muestren más elementos de los necesarios en la interfaz.
+    /// </summary>
     public void StartClasificationLap()
     {
         HideReadyButton();
         textPosition.gameObject.transform.parent.gameObject.SetActive(false);
         textOrder.gameObject.transform.parent.gameObject.SetActive(false);
     }
+
+    /// <summary>
+    /// Método que se llama al terminar la vuelta de clasificación, para mostrar los elementos de la interfaz necesarios.
+    /// </summary>
     public void FinishClasificationLap()
     {
         readyButton.gameObject.SetActive(true);
@@ -103,26 +109,48 @@ public class UIManager : NetworkBehaviour
         textOrder.gameObject.transform.parent.gameObject.SetActive(true);
     }
 
+
+    /// <summary>
+    /// Método llamado para actualizar el texto de los resultados de la carrera.
+    /// </summary>
+    /// <param name="results"></param>
     public void UpdateEndResults(string results)
     {
         endText.text = results;
     }
-
+    /// <summary>
+    /// Se actualiza uno de los textos, para indicar que la carrera ha terminado para todos los jugadores.
+    /// </summary>
     public void UpdateStateResult()
     {
         stateText.text = "RACE ENDED. ALL PLAYERS MADE IT";
     }
 
+    /// <summary>
+    /// Actualiza el valor de la interfaz que muestra la velocidad del jugador.
+    /// </summary>
+    /// <param name="speed"></param>
     public void UpdateSpeed(int speed)
     {
         textSpeed.text = "Speed " + speed + " Km/h";
     }
 
+    /// <summary>
+    /// Actualiza el valor de la interfaz que muestra la posición del jugador actualmente.
+    /// </summary>
+    /// <param name="pos"></param>
     public void UpdatePosition(int pos)
     {
         textPosition.text = "Position: " + pos;
     }
 
+    /// <summary>
+    /// Actualiza la interfaz para mostrar la vuelta actual, el tiempo que el jugador lleva en esa vuelta, el tiempo total de la carrera, y el número total de vueltas necesarias.
+    /// </summary>
+    /// <param name="lap"></param>
+    /// <param name="currentTime"></param>
+    /// <param name="totalTime"></param>
+    /// <param name="totalLaps"></param>
     public void UpdateLap(int lap, double currentTime, double totalTime, int totalLaps)
     {
 
@@ -131,17 +159,28 @@ public class UIManager : NetworkBehaviour
         textLaps.text += "Total time: " + "\n" + totalTime;
     }
 
+    /// <summary>
+    /// Método que actualiza en la interfaz el tiempo que el jugador lleva corriendo la vuelta de clasificación.
+    /// </summary>
+    /// <param name="currentTime"></param>
     public void UpdateClasLap(double currentTime)
     {
         textLaps.text = "Clasification Lap" + "\n";
         textLaps.text += "Time of the lap: " + "\n" + currentTime + "\n";
     }
 
+    /// <summary>
+    /// Método que muestra en la interfaz el orden de los jugadores en la carrera.
+    /// </summary>
+    /// <param name="newOrder"></param>
     public void UpdateOrder(string newOrder)
     {
         textOrder.text = newOrder;
     }
 
+    /// <summary>
+    /// Método que muestra el menú principal, y oculta los demás.
+    /// </summary>
     public void ActivateMainMenu()
     {
         mainMenu.SetActive(true);
@@ -149,6 +188,9 @@ public class UIManager : NetworkBehaviour
         endResults.SetActive(false);
     }
 
+    /// <summary>
+    /// Método que se ejecuta cuando el jugador pulsa el botón de ready.
+    /// </summary>
     private void playerIsReady()
     {
         //Desactiva la interactividad del boton
@@ -168,9 +210,13 @@ public class UIManager : NetworkBehaviour
         }
     }
     
+    /// <summary>
+    /// Activa o desactiva el aviso de que el coche no está bien apoyado en la carretera (podría volcar o ha volcado)
+    /// </summary>
+    /// <param name="newVal"></param>
     public void alternateCrash(bool newVal)
-    {
-        textCrash.transform.parent.gameObject.SetActive(newVal);
+    {
+        textCrash.transform.parent.gameObject.SetActive(newVal);
     }
     /// <summary>
     /// Suscrito al evento AllPlayersEndedEvent, habilita el botón de "play again" solamente cuando todos los demás jugadores hayan terminado la presente carrera.
@@ -205,6 +251,10 @@ public class UIManager : NetworkBehaviour
 
     }
 
+
+    /// <summary>
+    /// 
+    /// </summary>
     public void addPlayAgainCounter()
     {
         playAgainCounter++;
@@ -213,6 +263,9 @@ public class UIManager : NetworkBehaviour
 
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     private void returnToMainMenu()
     {
         ActivateMainMenu();
@@ -235,17 +288,27 @@ public class UIManager : NetworkBehaviour
 
         //m_NetworkManager.StopClient();
     }
+
+    /// <summary>
+    /// Oculta el botón de ready
+    /// </summary>
     public void HideReadyButton()
     {
         readyButton.gameObject.SetActive(false);
     }
 
+    /// <summary>
+    /// Activa la interfaz del juego y desactiva el menú principal.
+    /// </summary>
     private void ActivateInGameHUD()
     {
         mainMenu.SetActive(false);
         inGameHUD.SetActive(true);
     }
 
+    /// <summary>
+    /// Se activa el menú que muestra los resultados de la carrera, y se desactivan los demás.
+    /// </summary>
     public void endResultsHUD()
     {
         mainMenu.SetActive(false);

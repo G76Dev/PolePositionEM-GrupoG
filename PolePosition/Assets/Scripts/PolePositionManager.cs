@@ -12,12 +12,11 @@ public class SyncDictionaryIntFloat : SyncDictionary<int, float> { }
 
 
 public class PolePositionManager : NetworkBehaviour
-{
-    //Mutex mutex = new Mutex();
+{
 
     [SyncVar] public int numPlayers = 0;//numero de jugadores
     [SyncVar] public int actualPlayerID = 0;
-    [SyncVar] int reconFinished = 0;
+    [SyncVar] int clasFinished = 0;
     [HideInInspector] int playersReady = 0; 
     [SyncVar] [HideInInspector] int playersEnded;
 
@@ -41,7 +40,7 @@ public class PolePositionManager : NetworkBehaviour
 
     float[] arcAux;
 
-    private readonly List<PlayerInfo> m_Players = new List<PlayerInfo>(4);
+    public readonly List<PlayerInfo> m_Players = new List<PlayerInfo>(4);
     public CircuitController m_CircuitController;//controlador del circuito
     private GameObject[] m_DebuggingSpheres;//esfera para uso en el debug
 
@@ -52,8 +51,8 @@ public class PolePositionManager : NetworkBehaviour
     private float[] arcLengths;
     private float[] playerTimes;
 
-    //Saber si se esta de reconocimiento o en la carrera final
-    public bool reconocimiento = true;
+    //Saber si se esta en la vuelta de clasificación o en la carrera final
+    public bool clasification = true;
     public bool isRaceEnded; //Determina si ha terminado la carrera y se utiliza para enviar segun qué información al HUD y ahorrar cálculos cuando la carrera ya ha terminado
     private bool hasStarted = false; //Determina si la carrera ha comenzado. Se utiliza para sincronizar los contadores de todos los jugadores y para no contar el tiempo antes de que todos estén listos
 
@@ -118,19 +117,20 @@ public class PolePositionManager : NetworkBehaviour
             currentCrashed = value;
         }
     }
-
+    //Delegado para la actualización de la interfaz en función de si el coche va o no marcha atras.
     public delegate void OnBackDirectionChangeDelegate(bool newVal);
 
-    public event OnBackDirectionChangeDelegate OnBackDirectionChangeEvent;
-
+    public event OnBackDirectionChangeDelegate OnBackDirectionChangeEvent;    //Delegado para la actualización de la interfaz en función de si el coche esta o no apoyado correctamente en la carretera.
     public delegate void OnCrashedStateChangeDelegate(bool newVal);
 
     public event OnCrashedStateChangeDelegate OnCrashedStateChangeEvent;
-
+    //Delegado para la actualización de la interfaz mostrando el orden de los coches (jugadores).
     public delegate void OnOrderChangeDelegate(string newVal);
 
     public event OnOrderChangeDelegate OnOrderChangeEvent;
+
     public event OnOrderChangeDelegate updateResults;
+
     public delegate void SyncEnd();
     public event SyncEnd allPlayersEndedEvent;
     public event SyncEnd playerPlayAgainEvent;
@@ -156,8 +156,10 @@ public class PolePositionManager : NetworkBehaviour
         m_UImanager.PlayerReadyEvent += ManageStart; //Suscribe al evento que lanza el botón de "Ready" el proceso que se encarga de llamar al Command correspondiente
 
     }
+
     //GetComponent<NetworkIdentity>().AssignClientAuthority(this.GetComponent<NetworkIdentity>().connectionToClient);
     //Esta linea se usa en caso de que un command no funcione, pero teoricamente nunca es necesaria
+
 
     void ManageStart()
     {
@@ -202,29 +204,17 @@ public class PolePositionManager : NetworkBehaviour
         }
     }
 
-
+    //Rpc que se ejecuta cuando un jugador quiere jugar otra vez.
     [ClientRpc]
     public void RpcPlayAgain()
     {
         if (playerPlayAgainEvent != null)
             playerPlayAgainEvent();
     }
-
-    //Función que se ejecuta cada vez que el valor de reconFinished cambia, es decir, cada vez que un jugador termina la vuelta de reconocimiento.
-    //[TargetRpc]
-    //void RpcHookRecon(NetworkConnection target, int position)
-    //{
-    //    foreach (PlayerInfo info in m_Players)
-    //    {
-    //        if (info.LocalPlayer)
-    //        {
-    //            info.gameObject.transform.position = spawns[position].transform.position;
-    //        }
-    //    }
-    //}
-
+    //Función que se ejecuta cuando un coche ha completado la vuelta de clasificación
+
     [ClientRpc]
-    void RpcHook(float[] times, float[] sortedTimes, int finished)
+    void RpcClasFinished(float[] times, float[] sortedTimes, int finished)
     {
         
 
@@ -312,7 +302,7 @@ public class PolePositionManager : NetworkBehaviour
 
 
 
-        if (reconocimiento)
+        if (clasification)
         {
             if (!setupPlayer.gameObject.GetComponent<PlayerInfo>().hasEnded)
             {
@@ -322,7 +312,7 @@ public class PolePositionManager : NetworkBehaviour
             
 
             timer += Time.deltaTime;
-            updateReconProgress();
+            updateClasProgress();
         }
         if (hasStarted) //Solo actualiza el estado de la carrera si ha comenzado. Así ahorramos cálculos innecesarios
         {
@@ -337,6 +327,7 @@ public class PolePositionManager : NetworkBehaviour
         }
     }
 
+    //Función llamada mediante un command por cada jugador para que se le asigne un ID en función del orden en el que se conecten.
     public int updatePlayersID()
     {
         int aux = actualPlayerID;
@@ -344,7 +335,7 @@ public class PolePositionManager : NetworkBehaviour
         return aux;
     }
 
-    //añade un jugador
+    //Añade un jugador
     public void AddPlayer(PlayerInfo player)
     {
         print("Nombre: " + player.Name + " ID: " + player.ID);
@@ -353,7 +344,7 @@ public class PolePositionManager : NetworkBehaviour
         playerTimes = new float[m_Players.Count];
         arcAux = new float[m_Players.Count];
     }
-
+    //
     public void QuitPlayer(PlayerInfo player)
     {
         m_Players.Remove(player);
@@ -364,14 +355,14 @@ public class PolePositionManager : NetworkBehaviour
         playerTimes = new float[m_Players.Count];
         arcAux = new float[m_Players.Count];
     }
-
+    //Método que se activa cuando el jugador local termina la carrera. Mueve la camara de sitio para que se vea el podium.
     public void PostGameCamera()
     {
         if (Camera.main != null)
             Camera.main.gameObject.GetComponent<CameraController>().m_Focus = postGameBackground;
     }
 
-
+    //Clase para comparar y ordenar los jugadores en función de su posición en la carrera.
     private class PlayerInfoComparer : Comparer<PlayerInfo>
     {
         float[] m_ArcLengths;
@@ -422,8 +413,8 @@ public class PolePositionManager : NetworkBehaviour
         }
     }
 
-    //Método que gestiona los datos de la vuelta de reconocimiento, en lugar de la carrera.
-    public void updateReconProgress()
+    //Método que gestiona los datos de la vuelta de clasificación, en lugar de la carrera.
+    public void updateClasProgress()
     {
         float[] arcLengths = new float[m_Players.Count]; //Es MUY ineficiente que se declare un nuevo array en cada frame
         for (int i = 0; i < m_Players.Count; ++i)
@@ -580,10 +571,7 @@ public class PolePositionManager : NetworkBehaviour
     }
 
     public void UpdateRaceProgress()
-    {
-        // Update car arc-lengths
-        //arcLengths = new float[m_Players.Count]; //Es MUY ineficiente que se declare un nuevo array en cada frame
-        //Solo seria necesario aumentar el tamaño del array cada vez que se añade o se quita un jugador.      
+    {  
 
         for (int i = 0; i < m_Players.Count; ++i)
         {
@@ -597,10 +585,9 @@ public class PolePositionManager : NetworkBehaviour
                 m_Players[i].totalTime = totalTime;
 
 
-                tempTime += Time.deltaTime;
+                //tempTime += Time.deltaTime;
 
                 arcLengths[i] = ComputeCarArcLength(i);
-                //print("ORIGINAL: " + i + " " +  arcLengths[i]);
                 if (m_Players[i].LocalPlayer && updateTime != null)
                 {
                     updateTime(m_Players[i].CurrentLap, Math.Round(tempTime, 2), Math.Round(totalTime, 2), totalLaps);
@@ -631,8 +618,6 @@ public class PolePositionManager : NetworkBehaviour
                     //En el resto de vueltas, basta con comprobar los valores directos y ver si el de este frame es inferior al anterior.
                     if (arcLengths[i] < arcAux[i]) //Intentar hacerlo sin valores absolutos (mas eficiente)
                     {
-                        //print("ARCLENGHT " + arcLengths[i]);
-                        //print("El jugador " + m_Players[i].ID + " va hacia atrás");
                         print("El jugador " + m_Players[i].ID + " va hacia atrás");
                         if (m_Players[i].LocalPlayer && !m_Players[i].hasEnded /*&& timer >= 0.25*/)
                             BackDirection = true;
@@ -646,9 +631,7 @@ public class PolePositionManager : NetworkBehaviour
                         }
                             
                     }
-                }
-
-                //print((Math.Abs(arcLengths[i]) - Math.Abs(arcAux[i])));
+                }
                 arcAux[i] = arcLengths[i];
                  
                 string myRaceOrder = "";
@@ -668,15 +651,6 @@ public class PolePositionManager : NetworkBehaviour
                 {
                     Order = myRaceOrder;
                 }
-
-                //Con esto se llamaría al evento para actualizar la posición. Falta saber quien es el jugador local para poner su posicion en lugar de la de otro
-                //if(OnPositionChangeEvent != null)
-                //{
-
-                //}
-
-
-                //Debug.Log("El orden de carrera es: " + myRaceOrder + "\n");
             }
             else
             {
@@ -749,7 +723,6 @@ public class PolePositionManager : NetworkBehaviour
                     updatePodium();
 
                     cont++;
-                    //print("Aumenta CONTADOR");
                 }
 
                 if (updateResults != null)
@@ -770,37 +743,27 @@ public class PolePositionManager : NetworkBehaviour
         }
 
     }
-
+    //Resetea el tiempo de la vuelta a 0, normalmente porque se ha terminado una vuelta y pasado a la siguiente.
     public void resetLapTime()
     {
         tempTime = 0;
     }
 
-    public void UpdateServerReconTime(int ID)
+    //Función llamada cuando un jugador termina la vuelta de clasificación.
+    public void UpdateServerClasTime(int ID)
     {
-        //foreach (PlayerInfo player in m_Players)
-        //{
-        //    if (player.LocalPlayer)
-        //    {
-        //        player.gameObject.GetComponent<SetupPlayer>().CmdFinishRecon(tempTime, ID);
-        //    }
-        //}
-        setupPlayer.CmdFinishRecon(tempTime, ID);
+        setupPlayer.CmdFinishClas(tempTime, ID);
         playerController.localMove = false;
         tempTime = 0;
         totalTime = 0;
-        //tempTime = 0;
-        //totalTime = 0;
-        //print("Canmove: " + playerController.canMove + " localmove: " + playerController.localMove);
     }
 
 
-
-    public void UpdateReconTime(float newTime, int ID)
+    //Método llamado desde un command cuando un jugador termina su vuelta de clasificación. En última instancia, llama a un Rcp que notifica esto al resto de jugadores
+    //para que hagan los cálculos pertienentes.
+    public void UpdateClasTime(float newTime, int ID)
     {
-        //mutex.WaitOne();
         clasTimes.Add(ID, newTime);
-
         List<float> times = new List<float>();
         List<float> sortedTimes = new List<float>();
 
@@ -817,20 +780,11 @@ public class PolePositionManager : NetworkBehaviour
         print("times length " + times.ToArray().Length);
         print("times length " + sortedTimes.ToArray().Length);
 
-        reconFinished++;
-        RpcHook(times.ToArray(), sortedTimes.ToArray(), reconFinished);
-        //NetworkConnectionToClient[] clients = new NetworkConnectionToClient[networkManager.maxConnections];
-
-        //for (int i = 0; i < clients.Length; i++)
-        //{
-        //    NetworkServer.connections.TryGetValue(i, out clients[i]);
-        //}
-        //mutex.ReleaseMutex();
+        clasFinished++;
+        RpcClasFinished(times.ToArray(), sortedTimes.ToArray(), clasFinished);
     }
 
 
-
-    //¿Calculos redundantes?
     float ComputeCarArcLength(int ID)
     {
         // Compute the projection of the car position to the closest circuit 
