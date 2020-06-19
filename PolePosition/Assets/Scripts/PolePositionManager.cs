@@ -160,10 +160,12 @@ public class PolePositionManager : NetworkBehaviour
     //GetComponent<NetworkIdentity>().AssignClientAuthority(this.GetComponent<NetworkIdentity>().connectionToClient);
     //Esta linea se usa en caso de que un command no funcione, pero teoricamente nunca es necesaria
 
-
+    /// <summary>
+    ///Llama al Command en setupPlayer que se encargará de llamar a "RpcManageStart" en este script
+    /// </summary>
     void ManageStart()
     {
-        mirrorManager.CmdPlayerReady(); //Llama al Command en setupPlayer que se encargará de llamar a "RpcManageStart" en este script
+        mirrorManager.CmdPlayerReady(); 
     }
 
     #region RPC Calls
@@ -188,9 +190,14 @@ public class PolePositionManager : NetworkBehaviour
 
             hasStarted = true;
         }       
-    }
-
-    //Esta llamada Rpc está en este lugar por el mismo motivo de la anterior
+    }
+
+
+
+
+    /// <summary>
+    /// //Esta llamada Rpc está en este lugar por el mismo motivo de la anterior
+    /// </summary>
     [ClientRpc]
     public void RpcManageStart()
     {
@@ -204,14 +211,21 @@ public class PolePositionManager : NetworkBehaviour
         }
     }
 
-    //Rpc que se ejecuta cuando un jugador quiere jugar otra vez.
+    /// <summary>
+    /// Rpc que se ejecuta cuando un jugador quiere jugar otra vez.
+    /// </summary>
     [ClientRpc]
     public void RpcPlayAgain()
     {
         if (playerPlayAgainEvent != null)
             playerPlayAgainEvent();
     }
-    //Función que se ejecuta cuando un coche ha completado la vuelta de clasificación
+    /// <summary>
+    /// //Función que se ejecuta cuando un coche ha completado la vuelta de clasificación
+    /// </summary>
+    /// <param name="times"></param>
+    /// <param name="sortedTimes"></param>
+    /// <param name="finished"></param>
 
     [ClientRpc]
     void RpcClasFinished(float[] times, float[] sortedTimes, int finished)
@@ -327,7 +341,10 @@ public class PolePositionManager : NetworkBehaviour
         }
     }
 
-    //Función llamada mediante un command por cada jugador para que se le asigne un ID en función del orden en el que se conecten.
+    /// <summary>
+    /// Función llamada mediante un command por cada jugador para que se le asigne un ID en función del orden en el que se conecten.
+    /// </summary>
+    /// <returns></returns>
     public int updatePlayersID()
     {
         int aux = actualPlayerID;
@@ -335,7 +352,10 @@ public class PolePositionManager : NetworkBehaviour
         return aux;
     }
 
-    //Añade un jugador
+    /// <summary>
+    ///  Añade un jugador
+    /// </summary>
+    /// <param name="player"></param>
     public void AddPlayer(PlayerInfo player)
     {
         print("Nombre: " + player.Name + " ID: " + player.ID);
@@ -344,7 +364,10 @@ public class PolePositionManager : NetworkBehaviour
         playerTimes = new float[m_Players.Count];
         arcAux = new float[m_Players.Count];
     }
-    //
+    /// <summary>
+    /// Se activa para eliminar a un jugador de la partida.
+    /// </summary>
+    /// <param name="player"></param>
     public void QuitPlayer(PlayerInfo player)
     {
         m_Players.Remove(player);
@@ -355,14 +378,18 @@ public class PolePositionManager : NetworkBehaviour
         playerTimes = new float[m_Players.Count];
         arcAux = new float[m_Players.Count];
     }
-    //Método que se activa cuando el jugador local termina la carrera. Mueve la camara de sitio para que se vea el podium.
+    /// <summary>
+    /// //Método que se activa cuando el jugador local termina la carrera. Mueve la camara de sitio para que se vea el podium.
+    /// </summary>
     public void PostGameCamera()
     {
         if (Camera.main != null)
             Camera.main.gameObject.GetComponent<CameraController>().m_Focus = postGameBackground;
     }
 
-    //Clase para comparar y ordenar los jugadores en función de su posición en la carrera.
+    /// <summary>
+    /// Clase para comparar y ordenar los jugadores en función de su posición en la carrera.
+    /// </summary>
     private class PlayerInfoComparer : Comparer<PlayerInfo>
     {
         float[] m_ArcLengths;
@@ -389,11 +416,18 @@ public class PolePositionManager : NetworkBehaviour
             if (this.m_ArcLengths[GetIndex(x)] < m_ArcLengths[GetIndex(y)])
                 return 1;
             else return -1;
-        }
-
-        //Método que recibe un player info, y devuelve su índice en la lista de playerinfos.
-        //Esto es importante porque la posición de cada player info varía en cada iteración si un jugador adelanta a otro, por lo que usar el id para saber la posición en la lista
-        //de un player info como se hacía al principio terminaría dando errores y no detectando bien quien va delante de quien.
+        }
+
+
+
+
+        /// <summary>
+        ///Método que recibe un player info, y devuelve su índice en la lista de playerinfos.
+        ///Esto es importante porque la posición de cada player info varía en cada iteración si un jugador adelanta a otro, por lo que usar el id para saber la posición en la lista
+        ///de un player info como se hacía al principio terminaría dando errores y no detectando bien quien va delante de quien.
+        /// </summary>
+        /// <param name="pi"></param>
+        /// <returns></returns>
         public int GetIndex(PlayerInfo pi)
         {
             int index = -1;
@@ -413,7 +447,9 @@ public class PolePositionManager : NetworkBehaviour
         }
     }
 
-    //Método que gestiona los datos de la vuelta de clasificación, en lugar de la carrera.
+    /// <summary>
+    /// Método que gestiona los datos de la vuelta de clasificación, en lugar de la carrera.
+    /// </summary>
     public void updateClasProgress()
     {
         float[] arcLengths = new float[m_Players.Count]; //Es MUY ineficiente que se declare un nuevo array en cada frame
@@ -519,13 +555,18 @@ public class PolePositionManager : NetworkBehaviour
 
     }
 
-
+    /// <summary>
+    /// Comprueba si todos los jugadores han terminado
+    /// </summary>
+    /// <returns></returns>
     private bool allHaveEnded()
     {
         return playersEnded >= numPlayers;
     }
 
-    //Hace lo mismo que PlayerInfoComparer pero con sus tiempos y no con los Arclengths
+    /// <summary>
+    /// Hace lo mismo que PlayerInfoComparer pero con sus tiempos y no con los Arclengths
+    /// </summary>
     private class PlayerTimeComparer : Comparer<PlayerInfo>
     {
         float[] m_playerTimes;
@@ -550,11 +591,18 @@ public class PolePositionManager : NetworkBehaviour
             if (this.m_playerTimes[GetIndex(x)] < m_playerTimes[GetIndex(y)])
                 return 1;
             else return -1;
-        }
-
-        ////Método que recibe un player info, y devuelve su índice en la lista de playerinfos.
-        ////Esto es importante porque la posición de cada player info varía en cada iteración si un jugador adelanta a otro, por lo que usar el id para saber la posición en la lista
-        ////de un player info como se hacía al principio terminaría dando errores y no detectando bien quien va delante de quien.
+        }
+
+
+
+
+        /// <summary>
+        ///Método que recibe un player info, y devuelve su índice en la lista de playerinfos.
+        ///Esto es importante porque la posición de cada player info varía en cada iteración si un jugador adelanta a otro, por lo que usar el id para saber la posición en la lista
+        ///de un player info como se hacía al principio terminaría dando errores y no detectando bien quien va delante de quien.
+        /// </summary>
+        /// <param name="pi"></param>
+        /// <returns></returns>
         public int GetIndex(PlayerInfo pi)
         {
             int index = -1;
@@ -663,10 +711,8 @@ public class PolePositionManager : NetworkBehaviour
                 //Mantenemos la actualización de tiempo para que cuando un jugador acabe el resto siga actualizando su tiempo local.
                 //Además, utilizaremos el totalTime local de cada cliente para simular el tiempo actual de los demás jugadores.
                 //Es un poco falso, pero como nos aseguramos de que todos comienzan al mismo tiempo, resulta ser pragmático
-
                 //totalTime += Time.deltaTime; //Sigue actualizando el tiempo total de carrera, que se utilizará para los demás jugadores.
                 arcLengths[i] = ComputeCarArcLength(i);
-
                 string myResults = "";
                 int cont = 1;
                 foreach (var _player in m_Players)
@@ -742,14 +788,22 @@ public class PolePositionManager : NetworkBehaviour
             print("Actualizar por tiempo");
         }
 
-    }
-    //Resetea el tiempo de la vuelta a 0, normalmente porque se ha terminado una vuelta y pasado a la siguiente.
+    }
+
+
+
+    /// <summary>
+    /// Resetea el tiempo de la vuelta a 0, normalmente porque se ha terminado una vuelta y pasado a la siguiente.
+    /// </summary>
     public void resetLapTime()
     {
         tempTime = 0;
     }
 
-    //Función llamada cuando un jugador termina la vuelta de clasificación.
+    /// <summary>
+    /// Función llamada cuando un jugador termina la vuelta de clasificación.
+    /// </summary>
+    /// <param name="ID"></param>
     public void UpdateServerClasTime(int ID)
     {
         setupPlayer.CmdFinishClas(tempTime, ID);
@@ -757,8 +811,12 @@ public class PolePositionManager : NetworkBehaviour
     }
 
 
-    //Método llamado desde un command cuando un jugador termina su vuelta de clasificación. En última instancia, llama a un Rcp que notifica esto al resto de jugadores
-    //para que hagan los cálculos pertienentes.
+    /// <summary>
+    /// Método llamado desde un command cuando un jugador termina su vuelta de clasificación. En última instancia, llama a un Rcp que notifica esto al resto de jugadores
+    ///para que hagan los cálculos pertienentes.
+    /// </summary>
+    /// <param name="newTime"></param>
+    /// <param name="ID"></param>
     public void UpdateClasTime(float newTime, int ID)
     {
         clasTimes.Add(ID, newTime);
