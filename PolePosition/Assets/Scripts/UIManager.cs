@@ -266,8 +266,10 @@ public class UIManager : NetworkBehaviour
     {
         //se almacena el nombre en este caso del cliene
         userName = nameField.text;
+
+        m_NetworkManager.networkAddress = (inputFieldIP.text != "") ? inputFieldIP.text : "localhost";
         m_NetworkManager.StartClient();
-        m_NetworkManager.networkAddress = inputFieldIP.text;
+        
 
         
         ActivateInGameHUD();
