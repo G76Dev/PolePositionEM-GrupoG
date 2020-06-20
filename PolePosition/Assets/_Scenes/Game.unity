@@ -2063,7 +2063,7 @@ MonoBehaviour:
   OnServerDisconnected:
     m_PersistentCalls:
       m_Calls: []
-  port: 7777
+  port: 443
   NoDelay: 1
   serverMaxMessageSize: 16384
   clientMaxMessageSize: 16384
@@ -2095,9 +2095,7 @@ MonoBehaviour:
   autoCreatePlayer: 1
   playerSpawnMethod: 1
   spawnPrefabs: []
-  m_PlayerController: {fileID: 0}
-  m_PlayerInfo: {fileID: 0}
-  m_MirrorManager: {fileID: 0}
+  scriptManager: {fileID: 0}
 --- !u!114 &331775738
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7766,6 +7764,7 @@ RectTransform:
   - {fileID: 598380851}
   - {fileID: 1245693210}
   - {fileID: 190313125}
+  - {fileID: 1260032018}
   m_Father: {fileID: 1823041898}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -8154,6 +8153,83 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 55461ab2ab0369f41b144e80b2c7b699, type: 3}
+--- !u!1 &1260032017
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1260032018}
+  - component: {fileID: 1260032020}
+  - component: {fileID: 1260032019}
+  m_Layer: 5
+  m_Name: Debug
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1260032018
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260032017}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 4, y: 4, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1208775211}
+  m_RootOrder: 5
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 97, y: -193}
+  m_SizeDelta: {x: 160, y: 30}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1260032019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260032017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 708705254, guid: f70555f144d8491a825f0804e09c671c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+  m_RaycastTarget: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_FontData:
+    m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
+    m_FontSize: 14
+    m_FontStyle: 0
+    m_BestFit: 0
+    m_MinSize: 10
+    m_MaxSize: 40
+    m_Alignment: 0
+    m_AlignByGeometry: 0
+    m_RichText: 1
+    m_HorizontalOverflow: 0
+    m_VerticalOverflow: 0
+    m_LineSpacing: 1
+  m_Text: Debug
+--- !u!222 &1260032020
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260032017}
+  m_CullTransparentMesh: 0
 --- !u!1 &1275493954
 GameObject:
   m_ObjectHideFlags: 0
@@ -10793,8 +10869,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
+  scriptManager: {fileID: 0}
   showGUI: 1
-  m_mirrorManager: {fileID: 0}
   userName: 
   mainMenu: {fileID: 1196147019}
   buttonHost: {fileID: 1854017023}
@@ -10818,6 +10894,8 @@ MonoBehaviour:
   returnToMenuButton: {fileID: 300310042}
   playAgainText: {fileID: 162555065}
   playAgainWindow: {fileID: 554553756}
+  canEnter: 1
+  doneWaiting: 1
 --- !u!4 &1823041898
 Transform:
   m_ObjectHideFlags: 0
@@ -10879,11 +10957,8 @@ MonoBehaviour:
   - {fileID: 1632075212}
   - {fileID: 1555463024}
   - {fileID: 1869130433}
-  totalLaps: 1
-  networkManager: {fileID: 0}
-  setupPlayer: {fileID: 0}
-  playerController: {fileID: 0}
-  mirrorManager: {fileID: 0}
+  totalLaps: 2
+  scriptManager: {fileID: 0}
   checkPointList: {fileID: 585182928}
   postGameBackground: {fileID: 100563131}
   m_CircuitController: {fileID: 0}

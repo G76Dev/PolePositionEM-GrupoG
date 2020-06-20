@@ -3,23 +3,17 @@ using Mirror;
 using UnityEngine;
 using Random = System.Random;
 using System.Threading;
+using Microsoft.Win32;
 
 public class MirrorManager : NetworkBehaviour
 {
 
-    private UIManager m_UIManager;
-    private NetworkManager m_NetworkManager;
-    private PlayerController m_PlayerController;
-    private PlayerInfo m_PlayerInfo;
-    private PolePositionManager m_PolePositionManager;
+    private ScriptManager scriptManager;
 
-    private void Awake()
+    // Start is called before the first frame update
+    void Start()
     {
-        m_PlayerInfo = GetComponent<PlayerInfo>();
-        m_PlayerController = GetComponent<PlayerController>();
-        m_NetworkManager = FindObjectOfType<NetworkManager>();
-        m_PolePositionManager = FindObjectOfType<PolePositionManager>();
-        m_UIManager = FindObjectOfType<UIManager>();
+        scriptManager = GetComponent<ScriptManager>();
     }
 
     //-------------------------
@@ -29,121 +23,67 @@ public class MirrorManager : NetworkBehaviour
     //Para poder hacerlo desde otros scripts, esos scripts contendrán una referencia directa al SetupPlayer del jugador local de ese cliente/servidor,
     //y desde aquí ejecutarán el comando necesario utilizando la referencia directa a este script.
 
-    /// <summary>
-    /// Llama a un Rpc para el comienzo de la partida.
-    /// </summary>
     [Command]
     public void CmdStartRace()
     {
-        m_PolePositionManager.RpcStartRace();
+        ScriptManager.polePositionManager.RpcStartRace();
     }
 
-    /// <summary>
-    /// Llama a un rpc para gestionar el comienzo de la partida.
-    /// </summary>
+    /*[Command]
+    public void CmdStartRaceOnlyServer()
+    {
+        ScriptManager.polePositionManager.StartRaceOnlyServer();
+    }*/
+
     [Command]
     public void CmdPlayerReady()
     {
-        m_PolePositionManager.RpcManageStart();
+        ScriptManager.polePositionManager.anotherPlayerIsReady();
     }
 
-    /// <summary>
-    /// Método que sirve para imprimir por consola del servidor datos que no están en el mismo.
-    /// </summary>
-    /// <param name="value"></param>
     [Command]
     public void CmdPrintServer(string value)
     {
         print(value);
     }
 
-    /// <summary>
-    /// Llama a un Rpc para jugar otra vez.
-    /// </summary>
     [Command]
     public void CmdPlayAgain()
     {
-        m_PolePositionManager.RpcPlayAgain();
+        ScriptManager.polePositionManager.RpcPlayAgain();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
     [Command]
-    public void CmdEndRace()
+    public void CmdHookClasTimes(float[] times, float[] sortedTimes, int finished)
     {
-
+        ScriptManager.polePositionManager.RpcHook(times, sortedTimes, finished);
     }
 
-    /// <summary>
-    /// Métodos para eliminar la deriva del coche local y los otros que visualiza.
-    /// </summary>
-    /// <param name="id"></param>
-    /// <param name="friction"></param>
-    [ClientRpc]
-    private void RpcFric(int id, float friction)
-    {
-        int index = -1;
-        for (int i = 0; i < m_PolePositionManager.m_Players.Count; i++)
-        {
-            if (m_PolePositionManager.m_Players[i].ID == id)
-            {
-                index = i;
-            }
-        }
+    //[Command]
+    //public void CmdAddPlayer(int id, string N, int CLap, int CPos, int checkCount)
+    //{
+    //    PlayerInfo player = new PlayerInfo();
+    //    player.ID = id;
+    //    player.name = N;
+    //    player.CurrentLap = CLap;
+    //    player.CurrentPosition = CPos;
+    //    player.checkpointCount = checkCount;
 
-        if (index != -1)
-        {
-            WheelFrictionCurve fric = m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].rightWheel.sidewaysFriction;
-            fric.extremumSlip = friction;
-            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].rightWheel.sidewaysFriction = fric;
-            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].leftWheel.sidewaysFriction = fric;
-            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[1].rightWheel.sidewaysFriction = fric;
-            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[1].leftWheel.sidewaysFriction = fric;
-            print("Dentro de la drriva del host");
-        }
-        
-    }
+    //    ScriptManager.polePositionManager.AddPlayer(player);
+    //}
 
-    /// <summary>
-    /// Sirve para que cada jugador local mande su friccion al resto, para que a todos se les aplique igual.
-    /// </summary>
-    /// <param name="id"></param>
-    /// <param name="friction"></param>
     [Command]
-    public void CmdFric(int id, float friction)
+    public void CmdBlockEntrance()
     {
-        int index = -1;
-        for (int i = 0; i < m_PolePositionManager.m_Players.Count; i++)
-        {
-            if(m_PolePositionManager.m_Players[i].ID == id)
-            {
-                index = i;
-            }
-        }
-
-        if (index != -1)
-        {
-            WheelFrictionCurve fric = m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].rightWheel.sidewaysFriction;
-            fric.extremumSlip = friction;
-            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].rightWheel.sidewaysFriction = fric;
-            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[0].leftWheel.sidewaysFriction = fric;
-            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[1].rightWheel.sidewaysFriction = fric;
-            m_PolePositionManager.m_Players[index].GetComponent<PlayerController>().axleInfos[1].leftWheel.sidewaysFriction = fric;
-            RpcFric(id, friction);
-            print("Dentro de la drriva del cliente");
-        }
+        ScriptManager.UIManager.canEnter = false;
     }
 
-    // Start is called before the first frame update
-    void Start()
+
+    [Command]
+    public void CmdGetCanEnterFromServer()
     {
-        
+        print(ScriptManager.UIManager.canEnter);
+        ScriptManager.polePositionManager.RpcGetCanEnterFromServer(ScriptManager.UIManager.canEnter);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

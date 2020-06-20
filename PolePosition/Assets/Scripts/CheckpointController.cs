@@ -4,15 +4,9 @@ using UnityEngine;
 
 public class CheckpointController : MonoBehaviour
 {
-    private PlayerInfo m_PlayerInfo;
-    private PlayerController m_PlayerController;
-    private PolePositionManager m_PoleManager;
-    private UIManager m_UImanager;
+    private ScriptManager scriptManager;
 
     [HideInInspector] GameObject checkpointList;
-
-
-
 
     public delegate void changeLapDelegate();
 
@@ -22,17 +16,14 @@ public class CheckpointController : MonoBehaviour
 
     public void Awake()
     {
-        m_PoleManager = FindObjectOfType<PolePositionManager>();
-        m_PlayerController = GetComponent<PlayerController>();
-        m_PlayerInfo = GetComponent<PlayerInfo>();
-        m_UImanager = FindObjectOfType<UIManager>();
-        m_PlayerInfo.checkpointCount = 0;
+        scriptManager = GetComponent<ScriptManager>();
     }
 
     // Start is called before the first frame update
     void Start()
     {
-        checkpointList = m_PoleManager.checkPointList;
+        scriptManager.playerInfo.checkpointCount = 0;
+        checkpointList = ScriptManager.polePositionManager.checkPointList;
         //print("HIJOS: " + checkpointList.transform.childCount);
     }
 
@@ -42,84 +33,64 @@ public class CheckpointController : MonoBehaviour
         //Solo se comprobará el checkpoint si el objeto collider tiene el tag adecuado
         if (col.tag == "Checkpoint")
         {
-            int nextCheckPoint = (m_PlayerInfo.CheckPoint + 1) % checkpointList.transform.childCount;
+            int nextCheckPoint = (scriptManager.playerInfo.CheckPoint + 1) % checkpointList.transform.childCount;
 
             if (int.Parse(col.name) == nextCheckPoint)
             {
-                //print("CHECKPOINT " + nextCheckPoint + " ALCANZADO");
-                m_PlayerInfo.checkpointCount++;
+                scriptManager.playerInfo.checkpointCount++;
 
-                if (m_PlayerInfo.checkpointCount == checkpointList.transform.childCount)
+                if (scriptManager.playerInfo.checkpointCount == checkpointList.transform.childCount)
                 {
-                    if (!m_PoleManager.clasification)
-                    {
-                        m_PlayerInfo.CurrentLap++;
-                    }
-                    else
-                    {
-                        if (m_PlayerInfo.LocalPlayer)
-                        {
-                            m_PoleManager.clasification = false;
-                            m_PoleManager.UpdateServerClasTime(m_PlayerInfo.ID);
-                            m_UImanager.FinishClasificationLap();
-                        }                       
+                    if (!ScriptManager.polePositionManager.reconocimiento)
+                    {
+                        scriptManager.playerInfo.CurrentLap++;
                     }
-                    
+                    else
+                    {
+                        if (scriptManager.playerInfo.LocalPlayer)
+                        {
+                            EndClasificactionLap();
+                        }
+                    }
 
-                    if(m_PlayerInfo.CurrentLap >= m_PoleManager.totalLaps)
-                    {
+                    if (scriptManager.playerInfo.CurrentLap >= ScriptManager.polePositionManager.totalLaps)
+                    {
                         EndRace();
-
                         return;
                     }
 
-                    m_PlayerInfo.checkpointCount = 0;
+                    scriptManager.playerInfo.checkpointCount = 0;
 
                     if (changeLapEvent != null)
                         changeLapEvent();
-                    //print("CAMBIO DE VUELTA WEY");
                 }
-                m_PlayerInfo.CheckPoint = nextCheckPoint;
+                scriptManager.playerInfo.CheckPoint = nextCheckPoint;
             }
 
         }
     }
-    /// <summary>
-    /// Método para cuando termina la vuelta de clasificación.
-    /// </summary>
-    public void EndClasificactionLap()
-    {
-        m_PoleManager.clasification = false;
-        m_PoleManager.UpdateServerClasTime(m_PlayerInfo.ID);
-    }
-    /// <summary>
-    /// Método para cuando termina la partida.
-    /// </summary>
-    public void EndRace()
-    {
-        m_PlayerController.canMove = false; //El jugador que haya superado la carrera se dejará de mover.
-                                            //To do: teletransportar al podio
 
-
-
-        m_PlayerInfo.totalTime = m_PoleManager.totalTime;
-        //To do: enviar el tiempo a los demás jugadores.
-
-
-        m_PlayerInfo.hasEnded = true;
-        m_PoleManager.isRaceEnded = true;
-
-        m_PoleManager.managePlayersEnded();
-        m_PoleManager.updatePodium();
-
-        if (endRaceEvent != null)
-            endRaceEvent();
-    }
-
-
-    // Update is called once per frame
-    void Update()
+    public void EndClasificactionLap()
     {
+        ScriptManager.polePositionManager.reconocimiento = false;
+        ScriptManager.polePositionManager.UpdateServerReconTime(scriptManager.playerInfo.ID);
+        ScriptManager.UIManager.FinishClasificationLap();
+    }
+
+    public void EndRace()
+    {
+        scriptManager.playerController.canMove = false; //El jugador que haya superado la carrera se dejará de mover.
 
-    }
+        //To do: teletransportar al podio
+
+        scriptManager.playerInfo.totalTime = ScriptManager.polePositionManager.totalTime;
+
+        //To do: enviar el tiempo a los demás jugadores.
+
+        scriptManager.playerInfo.hasEnded = true;
+        ScriptManager.polePositionManager.isRaceEnded = true;
+        ScriptManager.polePositionManager.managePlayersEnded();
+        if (endRaceEvent != null)
+            endRaceEvent();
+    }
 }

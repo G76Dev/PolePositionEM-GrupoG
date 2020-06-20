@@ -4,27 +4,24 @@ using UnityEngine;
 using Random = System.Random;
 using System.Threading;
 
-
 /*
 	Documentation: https://mirror-networking.com/docs/Guides/NetworkBehaviour.html
 	API Reference: https://mirror-networking.com/docs/api/Mirror.NetworkBehaviour.html
 */
-
 public class SetupPlayer : NetworkBehaviour
 {
-    [SyncVar(hook = nameof(SetID))] private int m_ID;
-    [SyncVar(hook = nameof(SetNombre))] private string m_Name;
-    //CountdownEvent comenzar = new CountdownEvent(2);
+    [SyncVar(hook = nameof(SetID))] private int m_ID; //ID del jugador
+    [SyncVar(hook = nameof(SetNombre))] private string m_Name; //Nombre del jugador
 
-    private UIManager m_UIManager;
+    //private UIManager scriptManager.UIManager;
     [SerializeField] NetworkManager m_NetworkManager;
-    private NetworkController m_networkController;
-    public PlayerController m_PlayerController;
-    private CheckpointController m_checkPointController;
-    public PlayerInfo m_PlayerInfo;
-    private MirrorManager m_MirrorManager;
-    private PolePositionManager m_PolePositionManager;
-    private NetworkController m_NetworkController;
+    //private NetworkController m_networkController;
+    private ScriptManager scriptManager;
+    //public PlayerController scriptManager.playerController;
+    //private CheckpointController scriptManager.checkPointController;
+    //public PlayerInfo scriptManager.playerInfo;
+    //private MirrorManager m_MirrorManager;
+    //private PolePositionManager scriptManager.polePositionManager;
 
     //almacenamos el script de selecion del modelo del coche
     private CharacterSelection m_selection;
@@ -50,48 +47,59 @@ public class SetupPlayer : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-        m_PlayerInfo.ID = m_ID;
-        m_PlayerInfo.Name = m_Name;
-        m_PlayerInfo.CurrentLap = 0;
-        m_PlayerInfo.CurrentPosition = 0;
+
+        scriptManager = GetComponent<ScriptManager>(); //Asignamos aquí el scriptManager. Podria dar problemas si el startclient se ejecutase antes del awake de scriptManager
+
+        //Inicialización de los valores del playerInfo
+        scriptManager.playerInfo.ID = m_ID;
+        scriptManager.playerInfo.Name = m_Name;
+        scriptManager.playerInfo.CurrentLap = 0;
+        scriptManager.playerInfo.CurrentPosition = 0;
+        scriptManager.playerInfo.checkpointCount = 0;
         Material(color);
 
         //Guardamos en el playerinfo si este pertenece al jugador local o a otro. Se utiliza en el pole position para distintos aspectos.
-        m_PlayerInfo.LocalPlayer = isLocalPlayer;
+        scriptManager.playerInfo.LocalPlayer = isLocalPlayer;
 
-        if (isLocalPlayer)
-        {
-            m_PlayerInfo.OnPositionChangeEvent += OnPositionChangeEventHandler;
-            m_PolePositionManager.setupPlayer = this;
-            m_PolePositionManager.mirrorManager = GetComponent<MirrorManager>();
-            m_PolePositionManager.playerController = GetComponent<PlayerController>();
-            m_UIManager.m_mirrorManager = GetComponent<MirrorManager>();            m_PlayerController.m_Mirror = GetComponent<MirrorManager>();
-            m_networkController = FindObjectOfType<NetworkController>();
-            m_networkController.m_PlayerInfo = m_PlayerInfo;
-            m_networkController.m_PlayerController = m_PlayerController;
-
-
-            //Asignar los correspondientes eventos a sus llamadas
-            m_PolePositionManager.StartRaceEvent += m_UIManager.HideReadyButton;
-            m_PolePositionManager.allPlayersEndedEvent += m_UIManager.UpdateStateResult;
-            m_PolePositionManager.allPlayersEndedEvent += m_UIManager.canPlayAgain;
-            m_PolePositionManager.playerPlayAgainEvent += m_UIManager.addPlayAgainCounter;
-            m_PolePositionManager.playerPlayAgainEvent += m_UIManager.playAgain;
-            m_checkPointController.changeLapEvent += m_PolePositionManager.resetLapTime;
-            m_checkPointController.endRaceEvent += m_PolePositionManager.PostGameCamera;
-            //m_checkPointController.endRaceEvent += m_PolePositionManager.updatePodium;
-            //m_checkPointController.endRaceEvent += m_PolePositionManager.managePlayersEnded;
-            m_checkPointController.endRaceEvent += m_UIManager.endResultsHUD;
+        if (isLocalPlayer)
+        {
+            scriptManager.playerInfo.OnPositionChangeEvent += OnPositionChangeEventHandler;
+
+            //scriptManager.polePositionManager.setupPlayer = this;
+            //scriptManager.polePositionManager.mirrorManager = GetComponent<MirrorManager>();
+            //scriptManager.polePositionManager.playerController = GetComponent<PlayerController>();
+
+            //m_networkController = FindObjectOfType<NetworkController>();
+            //m_networkController.playerInfo = scriptManager.playerInfo;
+            //m_networkController.scriptManager.playerController = scriptManager.playerController;
+            //------------------------------------------------------------------
+            // EVENTOS
+            //------------------------------------------------------------------
+            //Asignar los correspondientes eventos a sus llamadas
+            ScriptManager.polePositionManager.StartRaceEvent += ScriptManager.UIManager.HideReadyButton;
+            ScriptManager.polePositionManager.allPlayersEndedEvent += ScriptManager.UIManager.UpdateStateResult;
+            ScriptManager.polePositionManager.allPlayersEndedEvent += ScriptManager.UIManager.canPlayAgain;
+            ScriptManager.polePositionManager.playerPlayAgainEvent += ScriptManager.UIManager.addPlayAgainCounter;
+            ScriptManager.polePositionManager.playerPlayAgainEvent += ScriptManager.UIManager.playAgain;
+            scriptManager.checkPointController.changeLapEvent += ScriptManager.polePositionManager.resetLapTime;
+            scriptManager.checkPointController.endRaceEvent += ScriptManager.polePositionManager.PostGameCamera;
+            //scriptManager.checkPointController.endRaceEvent += scriptManager.polePositionManager.managePlayersEnded;
+            scriptManager.checkPointController.endRaceEvent += ScriptManager.UIManager.endResultsHUD;            ScriptManager.UIManager.PlayerReadyEvent += ScriptManager.polePositionManager.ManageStart;
         }
 
         //Añade el jugador a la lista en todos los clientes y servidor
-        m_PolePositionManager.AddPlayer(m_PlayerInfo);
-        //m_PolePositionManager.numPlayers++;
-        print("JUGADOR AÑADIDO. JUGADORES ACTUALIZADOS: " + m_PolePositionManager.numPlayers);           
+        if(isClient)
+        {
+            ScriptManager.polePositionManager.AddPlayer(scriptManager.playerInfo);
+            //addPlayertoServer()
+        }     
     }
 
-
-
+    public void addPlayertoServer()
+    {
+            //scriptManager.mirrorManager.CmdAddPlayer(m_ID, m_Name, 0, 0, 0);
+            print("JUGADOR AÑADIDO. JUGADORES ACTUALIZADOS: " + ScriptManager.polePositionManager.numPlayers);
+    }
 
     /// <summary>
     /// Called when the local player object has been set up.
@@ -102,29 +110,22 @@ public class SetupPlayer : NetworkBehaviour
         //Tambien se podría usar un countdown tradicional pero no se como comunicar estas clases y sus componentes como si fuesen hilos distintos.
         //Si se pudiera, bastaría con hacer aquí un countdown.signal(), y que haya un countdownEvent con tantas señales como jugadores en PolePosition que haga un
         //wait() para que no comience la carrera hasta que cada cliente de su señal.
-        CmdSaveColor(m_selection.selection);
-        CmdSaveNombre(m_UIManager.userName);
-        CmdUpdateActualIDPlayer();
-        if (m_NetworkManager.isNetworkActive) //Si el cliente está listo para empezar
-        {
-            //Nothing
-        }
-
-       
+        CmdSaveColor(m_selection.selection);
+        CmdSaveNombre(ScriptManager.UIManager.userName);
+        CmdUpdateActualIDPlayer();    
     }
 
 
     #endregion
 
     private void Awake()
-    {       
-        m_PlayerInfo = GetComponent<PlayerInfo>();
-        m_PlayerController = GetComponent<PlayerController>();
+    {       
+        //scriptManager.playerInfo = GetComponent<PlayerInfo>();
         m_NetworkManager = FindObjectOfType<NetworkManager>();
-        m_UIManager = FindObjectOfType<UIManager>();
-        m_NetworkController = FindObjectOfType<NetworkController>();
-        m_PolePositionManager = FindObjectOfType<PolePositionManager>();
-        m_checkPointController = GetComponent<CheckpointController>();
+        //scriptManager.UIManager = FindObjectOfType<UIManager>();
+        //scriptManager.polePositionManager = FindObjectOfType<PolePositionManager>();
+        //scriptManager.checkPointController = GetComponent<CheckpointController>();
+
         //buscamos el objeto que contenga el script de seleccion de modelo
         m_selection = GameObject.FindGameObjectWithTag("Cars Container").GetComponent<CharacterSelection>();
     }
@@ -132,123 +133,93 @@ public class SetupPlayer : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
+
         if (isLocalPlayer)
         {
+            //ScriptManager.polePositionManager.scriptManager = scriptManager;
             //usamos la funcion material que recibe el valor selection con el que establecemos el color del coche
             //la variable color se compartira entre los distintos jugadores para que se pueda ver a cada jugador del color que deseen           
 
-            m_PlayerController.enabled = true;
-            m_PolePositionManager.OnOrderChangeEvent += OnOrderChangeEventHandler;
-            m_PlayerController.OnSpeedChangeEvent += OnSpeedChangeEventHandler;
-            m_PolePositionManager.updateTime += OnLapChangeEventHandler;
-            m_PolePositionManager.updateResults += OnRaceEndEventHandler;
-            m_PolePositionManager.updateClasTime += OnClasLapChangeEventHandler;
-            m_PolePositionManager.OnBackDirectionChangeEvent += UpdateBackDirectionUI;
-            m_PolePositionManager.OnCrashedStateChangeEvent += UpdateCrashedUI;
+            scriptManager.playerController.enabled = true;
+            ScriptManager.polePositionManager.OnOrderChangeEvent += OnOrderChangeEventHandler;
+            scriptManager.playerController.OnSpeedChangeEvent += OnSpeedChangeEventHandler;
+            ScriptManager.polePositionManager.updateTime += OnLapChangeEventHandler;
+            ScriptManager.polePositionManager.updateResults += OnRaceEndEventHandler;
+            ScriptManager.polePositionManager.updateClasTime += OnClasLapChangeEventHandler;
+            ScriptManager.polePositionManager.OnBackDirectionChangeEvent += UpdateBackDirectionUI;
+            ScriptManager.polePositionManager.OnCrashedStateChangeEvent += UpdateCrashedUI;
 
             ConfigureCamera();
-            m_UIManager.StartClasificationLap();
-        }
-        else if(isClient)
-        {
-            //Si el coche no es el del jugador local, se oculta a la vista del jugador, para que corra la vuelta de clasificación y decidir el orden de salida.
-
-            Renderer[] renders = gameObject.GetComponentsInChildren<Renderer>();
-            Collider[] colliders = gameObject.GetComponentsInChildren<Collider>();
-            foreach (Renderer r in renders)
-            {
-                r.enabled = false;
+            ScriptManager.UIManager.StartClasificationLap();
+        }
+        else if(isClient)
+        {
+           //Si el coche no es el del jugador local, se oculta a la vista del jugador, para que corra la vuelta de clasificación y decidir el orden de salida.
+            Renderer[] renders = gameObject.GetComponentsInChildren<Renderer>();
+            Collider[] colliders = gameObject.GetComponentsInChildren<Collider>();
+
+            foreach (Renderer r in renders)
+            {
+                r.enabled = false;
             }
-            foreach (Collider c in colliders)
-            {
-                c.enabled = false;
-            }
-
+            foreach (Collider c in colliders)
+            {
+                c.enabled = false;
+            }
         }
-
-        //foreach (AxleInfo axle in m_PlayerController.axleInfos)
-        //{
-        //    Cuando la velocidad es mayor a un valor pequeño, reducimos la fricción con el suelo para que el control del coche sea más rápido y fluido.
-        //    WheelFrictionCurve aux = axle.leftWheel.sidewaysFriction;
-        //    aux.extremumSlip = 0.4f;
-        //    axle.rightWheel.sidewaysFriction = aux;
-        //    axle.leftWheel.sidewaysFriction = aux;
+        //foreach (AxleInfo axle in scriptManager.playerController.axleInfos)
+        //{
+        //    Cuando la velocidad es mayor a un valor pequeño, reducimos la fricción con el suelo para que el control del coche sea más rápido y fluido.
+        //    WheelFrictionCurve aux = axle.leftWheel.sidewaysFriction;
+        //    aux.extremumSlip = 0.4f;
+        //    axle.rightWheel.sidewaysFriction = aux;
+        //    axle.leftWheel.sidewaysFriction = aux;
         //}
-    }
-
-    //Sirve para ejecutar el command de polePosition desde un objeto con permisos para ello (el jugador local)
-    [Command]
-    public void CmdFinishClas(float time, int ID)
-    {
-        m_PolePositionManager.UpdateClasTime(time, ID);
-    }
-
-
-    //Método, que se activará por un evento, para cambiar la velocidad en la interfaz.
-    void OnSpeedChangeEventHandler(float speed)
-    {
-        m_UIManager.UpdateSpeed((int) speed * 5); // 5 for visualization purpose (km/h)
-    }
-
-
-    //Método, llamado por un evento, que mostrará en la interfaz el orden de los jugadores en la carrera en el estado actual de la misma.
-    //El ordén se cálcula en otro sitio.
-    void OnOrderChangeEventHandler(string newOrder)
-    {
-        m_UIManager.UpdateOrder(newOrder);
-    }
-
-    //Actualizamos el valor de la posición en la interfaz del jugador.
-    void OnPositionChangeEventHandler(int position)
-    {
-        m_UIManager.UpdatePosition(position);
-    }
-
-    //Actualizamos el valor de la vuelta actual, y el tiempo, en la interfaz del jugador.
-    void OnLapChangeEventHandler(int lap, double currentTime, double totalTime, int totalLaps)
-    {
-        m_UIManager.UpdateLap(lap, currentTime, totalTime, totalLaps);
-    }
-
-    //Actualizamos el valor de la vuelta actual, y el tiempo, en la interfaz del jugador.
-    void OnClasLapChangeEventHandler(double currentTime)
-    {
-        m_UIManager.UpdateClasLap(currentTime);
-    }
-
-    //Método, llamado por un evento cuando termina la partida, que muestra por pantalla los resultados de la carrera.
-    void OnRaceEndEventHandler(string results)
-    {
-        m_UIManager.UpdateEndResults(results);
     }
 
     public void ConfigureCamera()
     {
         if (Camera.main != null) Camera.main.gameObject.GetComponent<CameraController>().m_Focus = this.gameObject;
-    }
-
-
-
-    //Esta funcion nos permite establecer el color del coche de acuerdo a un switch.
-    void Material(int n)
-    {
-        switch (n)
-        {
-            case 0:
-                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.red;
-                break;
-            case 1:
-                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.white;
-                break;
-            case 2:
-                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.yellow;
-                break;
-            default:
-                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.green;
-                break;
-        }
-        
     }
+
+    #region EVENTS
+
+    void OnSpeedChangeEventHandler(float speed)
+    {
+        ScriptManager.UIManager.UpdateSpeed((int) speed * 5); // 5 for visualization purpose (km/h)
+    }
+
+    void OnOrderChangeEventHandler(string newOrder)
+    {
+        ScriptManager.UIManager.UpdateOrder(newOrder);
+    }
+
+    //Actualizamos el valor de la posición en la interfaz del jugador.
+    void OnPositionChangeEventHandler(int position)
+    {
+        ScriptManager.UIManager.UpdatePosition(position);
+    }
+
+    //Actualizamos el valor de la vuelta actual, y el tiempo, en la interfaz del jugador.
+    void OnLapChangeEventHandler(int lap, double currentTime, double totalTime, int totalLaps)
+    {
+        ScriptManager.UIManager.UpdateLap(lap, currentTime, totalTime, totalLaps);
+    }
+
+    //Actualizamos el valor de la vuelta actual, y el tiempo, en la interfaz del jugador.
+    void OnClasLapChangeEventHandler(double currentTime)
+    {
+        ScriptManager.UIManager.UpdateClasLap(currentTime);
+    }
+
+    void OnRaceEndEventHandler(string results)
+    {
+        ScriptManager.UIManager.UpdateEndResults(results);
+    }
+
+    #endregion
+
+    #region COMMANDS
 
     //Función que se ejecuta en el servidor para actualizar el valor de la variable del color.
     [Command]
@@ -259,52 +230,78 @@ public class SetupPlayer : NetworkBehaviour
 
     //Función que se ejecuta en el servidor para actualizar el valor de la variable del nombre.
     [Command]
-    void CmdSaveNombre(string nombre)
+    void CmdSaveNombre(string nombre)
     {
         m_Name = nombre;
     }
 
-    //Función que se ejecuta en el servidor para actualizar el valor del ID de un jugador.
-    //Llamá a una función del PolePositionManager del servidor, que asigna un ID al jugador en función del orden en el que se conectan.
     [Command]
     void CmdUpdateActualIDPlayer()
     {
-        m_ID = m_PolePositionManager.updatePlayersID();
+        m_ID = ScriptManager.polePositionManager.updatePlayersID();
+    }
+
+    //Sirve para ejecutar el command de polePosition desde un objeto con permisos para ello (el jugador local)
+    [Command]
+    public void CmdFinishRecon(float time, int ID)
+    {
+        ScriptManager.polePositionManager.UpdateReconTime(connectionToClient, time, ID);
+    }
+
+    #endregion
+
+    #region MISC
+
+    //esta funcion nos permite establecer el color del coche de acuerdo a un switch
+    //la intencion es que contenga los colores lo mas parecido a los modelos que se usan dentro del juego
+    void Material(int n)
+    {
+        switch (n)
+        {
+            case 0:
+                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.red;
+                break;
+            case 1:                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.white;
+                break;
+            case 2:
+                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.yellow;
+                break;
+            default:
+                GetComponentInChildren<MeshRenderer>().materials[1].color = Color.green;
+                break;
+        }
     }
 
     //Función que se ejecuta cuando cambia el valor de la variable color. Actualiza el color del coche con el color nuevo.
-    void SetColor(int oldColor, int newColor)
+    void SetColor(int oldColor, int newColor)
     {
         Material(newColor);
     }
-
-    //Función que se ejecuta cuando cambia el valor de la variable m_Name. Actualiza el nombre del jugador con el nombre nuevo.
-    void SetNombre(string antiguoNombre, string nuevoNombre)
-    {
-
-        m_PlayerInfo.Name = nuevoNombre;
+    //Función que se ejecuta cuando cambia el valor de la variable m_Name. Actualiza el nombre del jugador con el nombre nuevo.
+    void SetNombre(string antiguoNombre, string nuevoNombre)
+    {
+        scriptManager.playerInfo.Name = nuevoNombre;
     }
 
-    //Función que se ejecuta cuando cambia el valor de la variable m_Name. Actualiza el nombre del jugador con el nombre nuevo.
-    void SetID(int antiguoID, int nuevoID)
-    {
-        m_PlayerInfo.ID = nuevoID;
-        print("ant id: " + antiguoID);
+    //Función que se ejecuta cuando cambia el valor de la variable m_Name. Actualiza el nombre del jugador con el nombre nuevo.
+    void SetID(int antiguoID, int nuevoID)
+    {
+        scriptManager.playerInfo.ID = nuevoID;
+        print("ant id: " + antiguoID);
         print("ID: " + nuevoID);
     }
 
-
-    //Función que activa o desactiva el aviso de que el coche no está apoyado bien en la carretera.
-    void UpdateCrashedUI(bool newVal)
-    {
-        print("UI Crashed");
-        m_UIManager.alternateCrash(newVal);
+    void UpdateCrashedUI(bool newVal)
+    {
+        print("UI Crashed");
+        ScriptManager.UIManager.alternateCrash(newVal);
     }
 
-    //Función que activa o desactiva el aviso de que el coche va marcha atras.
-    void UpdateBackDirectionUI(bool newVal)
-    {
-        print("UI back direction");
-        m_UIManager.alternateMarchaAtras(newVal);
+    void UpdateBackDirectionUI(bool newVal)
+    {
+        print("UI back direction");
+        ScriptManager.UIManager.alternateMarchaAtras(newVal);
     }
+
+    #endregion
 }

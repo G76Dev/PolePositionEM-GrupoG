@@ -5,20 +5,16 @@ using UnityEngine;
 
 public class NetworkController : NetworkManager
 {
-
-    public PlayerController m_PlayerController;
-    private UIManager m_UImanager;
-    public PlayerInfo m_PlayerInfo;
-    private PolePositionManager m_PolePositionManager;
-    [HideInInspector] public MirrorManager m_MirrorManager;
+    public ScriptManager scriptManager;
 
     public override void Awake()
     {
-        
-        //m_PlayerController = GetComponent<PlayerController>();
+        ScriptManager.networkController = this;
+
+        //scriptManager.playerController = GetComponent<PlayerController>();
         //m_NetworkManager = FindObjectOfType<NetworkManager>();
-        m_UImanager = FindObjectOfType<UIManager>();
-        m_PolePositionManager = FindObjectOfType<PolePositionManager>();
+        //scriptManager.UIManager = FindObjectOfType<UIManager>();
+        //scriptManager.polePositionManager = FindObjectOfType<PolePositionManager>();
         //m_PlayerInfo = GetComponent<PlayerInfo>();
     }
 
@@ -31,8 +27,13 @@ public class NetworkController : NetworkManager
     public override void OnClientDisconnect(NetworkConnection conn)
     {
         //Que veria el cliente si resulta que se desconecta del servidor por error.
-        m_UImanager.ActivateMainMenu();
-        m_PlayerController.canMove = false;
+        ScriptManager.UIManager.ActivateMainMenu();
+        scriptManager.playerController.canMove = false;
+
+        //To do: Desconectar clientes si es necesario y resetear las variables.
+        //To do: Si es posible, poner un mensaje de "desconectado".
+
+
         if (Camera.main != null)
         {
             Camera.main.gameObject.GetComponent<CameraController>().m_Focus = this.gameObject;
@@ -44,7 +45,6 @@ public class NetworkController : NetworkManager
 
     public override void OnServerDisconnect(NetworkConnection conn)
     {
-        //m_PolePositionManager.RpcPlayerQuit(4);
         print("JUGADOR DESCONECTADO");
 
         base.OnServerDisconnect(conn);
@@ -52,17 +52,20 @@ public class NetworkController : NetworkManager
 
     public override void OnServerReady(NetworkConnection conn)
     {
+
+
         base.OnServerReady(conn);
     }
 
     public override void OnServerAddPlayer(NetworkConnection conn)
     {
         //Aqui se podría hacer las gestiones que se hacian hasta ahora en el setupPlayer
-        m_PolePositionManager.numPlayers++;
+        ScriptManager.polePositionManager.numPlayers++;
+        
         print("NETWORK MANAGER: Jugador añadido");
+
         base.OnServerAddPlayer(conn);
     }
-
     public override void ServerChangeScene(string newSceneName)
     {
         //Esto y otras funciones similares se pueden usar para crear un servidor completamente autoritativo
@@ -70,14 +73,19 @@ public class NetworkController : NetworkManager
         base.ServerChangeScene(newSceneName);
     }
 
+    public override void OnStartServer()
+    {
+        //print("ADDRESS: " + this.networkAddress);
+
+
+        base.OnStartServer();
+    }
+
     public override void OnApplicationQuit()
     {
-
-        m_PolePositionManager.QuitPlayer(m_PlayerInfo);
-
-
-        
-
+        //En el caso de que sea un cliente, destruye su coche antes de cerrar la aplicacion y actualiza las variables
+        if(this.mode == NetworkManagerMode.ClientOnly || this.mode == NetworkManagerMode.Host)
+        ScriptManager.polePositionManager.QuitPlayer(scriptManager.playerInfo);
 
         //StopServer();
         //startser
@@ -105,9 +113,5 @@ public class NetworkController : NetworkManager
         base.OnStopClient();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+
 }

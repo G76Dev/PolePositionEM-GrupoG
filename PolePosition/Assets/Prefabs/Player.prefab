@@ -72,6 +72,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5767276987077256635}
   - component: {fileID: 8225447335114324579}
+  - component: {fileID: 114259136019732634}
   - component: {fileID: 8890231183782247234}
   - component: {fileID: 528894820688187042}
   - component: {fileID: 9124325200002634512}
@@ -120,6 +121,23 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &114259136019732634
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1508097745644926054}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f37b6ae3ed9a464d9825293d8b01cca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  setupPlayer: {fileID: 0}
+  playerInfo: {fileID: 0}
+  playerController: {fileID: 0}
+  mirrorManager: {fileID: 0}
+  checkPointController: {fileID: 0}
 --- !u!65 &8890231183782247234
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -181,7 +199,6 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0.1
   m_NetworkManager: {fileID: 0}
-  m_PlayerController: {fileID: 0}
 --- !u!114 &3466774584401487325
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -225,7 +242,7 @@ MonoBehaviour:
   topSpeed: 400
   downForce: 1000
   slipLimit: 0.2
-  localMove: 1
+  timerCrash: 0
   canMove: 0
   crashTimer: 0
 --- !u!114 &6346869062069434778

@@ -29,15 +29,13 @@ public class PlayerController : NetworkBehaviour
 
     private bool cheatRecon = true;
     private bool cheatRace = true;
-    public bool localMove = true;
+
 
     public float timerCrash = 0;
 
     //En teoria hay que quitar el syncvar
-    [SyncVar] public bool canMove = false; //Decide si el jugador puede moverse
+    public bool canMove = false; //Decide si el jugador puede moverse
     //Comienza a false a la espera de que RpcStart le permita moverse
-
-    //
 
 
     public float crashTimer = 0;
@@ -47,12 +45,7 @@ public class PlayerController : NetworkBehaviour
     private float InputSteering { get; set; }
     private float InputBrake { get; set; }
 
-    private PlayerInfo m_PlayerInfo;
-    public MirrorManager m_Mirror;
-    private PolePositionManager m_PoleManager;
-    private CheckpointController m_CheckPointController;
-
-    private WheelFrictionCurve friction;
+    private ScriptManager scriptManager;
 
     private Rigidbody m_Rigidbody;
     private float m_SteerHelper = 0.8f;
@@ -84,20 +77,20 @@ public class PlayerController : NetworkBehaviour
     public void Awake()
     {
         m_Rigidbody = GetComponent<Rigidbody>();
-        m_PoleManager = FindObjectOfType<PolePositionManager>();
-        m_CheckPointController = GetComponent<CheckpointController>();
-
-        //Esta variable no se usa de momento
-        m_PlayerInfo = GetComponent<PlayerInfo>();
-        m_PlayerInfo.checkpointCount = 0;
-        //control de friccion
-        friction = axleInfos[0].rightWheel.sidewaysFriction;
-        friction.extremumSlip = 0.3f;
     }
 
     private void Start()
-    {
-
+    {
+        scriptManager = GetComponent<ScriptManager>();
+        scriptManager.playerInfo.checkpointCount = 0;
+
+        StartCoroutine("WakeUp");
+    }
+
+    private IEnumerator WakeUp()
+    {
+        yield return new WaitForSeconds(2);
+        canMove = true;
     }
 
     public void Update()
@@ -107,7 +100,7 @@ public class PlayerController : NetworkBehaviour
 
         //¿Espera activa?
         //Activar o desactivar el playerController por eventos en lugar de comprobar booleanos.
-        if (canMove || localMove)
+        if (canMove)
         {
             InputAcceleration = Input.GetAxis("Vertical");
             InputSteering = Input.GetAxis(("Horizontal"));
@@ -124,18 +117,17 @@ public class PlayerController : NetworkBehaviour
             InputSteering = 0;
             InputBrake = 0;
         }
-
-        //CHEATS
+        //CHEATS
         if (Input.GetKeyDown(KeyCode.G) && cheatRecon)
-        {
-            m_CheckPointController.EndClasificactionLap();
-            cheatRecon = false;
+        {
+            scriptManager.checkPointController.EndClasificactionLap();
+            cheatRecon = false;
         }
 
         if (Input.GetKeyDown(KeyCode.H) && cheatRace)
-        {
-            m_CheckPointController.EndRace();
-            cheatRace = false;
+        {
+            scriptManager.checkPointController.EndRace();
+            cheatRace = false;
         }
 
     }
@@ -147,74 +139,50 @@ public class PlayerController : NetworkBehaviour
         InputBrake = Mathf.Clamp(InputBrake, 0, 1);
 
         float steering = maxSteeringAngle * InputSteering;
-        if (m_Rigidbody.velocity.magnitude < 0.3)
-        {
-            friction.extremumSlip = 0.3f;
-            if(axleInfos[0].leftWheel.sidewaysFriction.extremumSlip != 0.3)
-            {
-                m_Mirror.CmdFric(m_PlayerInfo.ID, 0.3f);
-            }
-        }
-        else
-        {
-            friction.extremumSlip = 0.2f;
-            if (axleInfos[0].leftWheel.sidewaysFriction.extremumSlip != 0.2)
-            {
-                m_Mirror.CmdFric(m_PlayerInfo.ID, 0.2f);
-            }
-        }
-
         foreach (AxleInfo axleInfo in axleInfos)
         {
-            
-            if (axleInfo.steering)
-            {
-                axleInfo.leftWheel.steerAngle = steering;
-                axleInfo.rightWheel.steerAngle = steering;
+            if (axleInfo.steering)
+            {
+                axleInfo.leftWheel.steerAngle = steering;
+                axleInfo.rightWheel.steerAngle = steering;
             }
-
-            if (axleInfo.motor)
-            {
-                if (InputAcceleration > float.Epsilon)
-                {
-                    axleInfo.leftWheel.motorTorque = forwardMotorTorque;
-                    axleInfo.leftWheel.brakeTorque = 0;
-                    axleInfo.rightWheel.motorTorque = forwardMotorTorque;
-                    axleInfo.rightWheel.brakeTorque = 0;
+            if (axleInfo.motor)
+            {
+                if (InputAcceleration > float.Epsilon)
+                {
+                    axleInfo.leftWheel.motorTorque = forwardMotorTorque;
+                    axleInfo.leftWheel.brakeTorque = 0;
+                    axleInfo.rightWheel.motorTorque = forwardMotorTorque;
+                    axleInfo.rightWheel.brakeTorque = 0;
                 }
-
-                if (InputAcceleration < -float.Epsilon)
-                {
-                    axleInfo.leftWheel.motorTorque = -backwardMotorTorque;
-                    axleInfo.leftWheel.brakeTorque = 0;
-                    axleInfo.rightWheel.motorTorque = -backwardMotorTorque;
-                    axleInfo.rightWheel.brakeTorque = 0;
+                if (InputAcceleration < -float.Epsilon)
+                {
+                    axleInfo.leftWheel.motorTorque = -backwardMotorTorque;
+                    axleInfo.leftWheel.brakeTorque = 0;
+                    axleInfo.rightWheel.motorTorque = -backwardMotorTorque;
+                    axleInfo.rightWheel.brakeTorque = 0;
                 }
-
-                if (Math.Abs(InputAcceleration) < float.Epsilon)
-                {
-                    axleInfo.leftWheel.motorTorque = 0;
-                    axleInfo.leftWheel.brakeTorque = engineBrake;
-                    axleInfo.rightWheel.motorTorque = 0;
-                    axleInfo.rightWheel.brakeTorque = engineBrake;
+                if (Math.Abs(InputAcceleration) < float.Epsilon)
+                {
+                    axleInfo.leftWheel.motorTorque = 0;
+                    axleInfo.leftWheel.brakeTorque = engineBrake;
+                    axleInfo.rightWheel.motorTorque = 0;
+                    axleInfo.rightWheel.brakeTorque = engineBrake;
                 }
-
-                if (InputBrake > 0)
-                {
-                    axleInfo.leftWheel.brakeTorque = footBrake;
-                    axleInfo.rightWheel.brakeTorque = footBrake;
-                }
+                if (InputBrake > 0)
+                {
+                    axleInfo.leftWheel.brakeTorque = footBrake;
+                    axleInfo.rightWheel.brakeTorque = footBrake;
+                }
             }
-            axleInfo.rightWheel.sidewaysFriction = friction;
-
-            axleInfo.leftWheel.sidewaysFriction = friction;
-            ApplyLocalPositionToVisuals(axleInfo.leftWheel);
+            ApplyLocalPositionToVisuals(axleInfo.leftWheel);
             ApplyLocalPositionToVisuals(axleInfo.rightWheel);
         }
-        SteerHelper();
-        SpeedLimiter();
-        AddDownForce();
-        //TractionControl();
+        SteerHelper();
+        SpeedLimiter();
+        AddDownForce();
+
+
     }
 
     #endregion
@@ -291,71 +259,57 @@ public class PlayerController : NetworkBehaviour
             axleInfo.leftWheel.GetGroundHit(out wheelHit[0]);
             axleInfo.rightWheel.GetGroundHit(out wheelHit[1]);
             cont = 0;
-            foreach (var wh in wheelHit)
-            {
-                if (wh.normal == Vector3.zero) //Este if detecta cuando el coche se ha chocado y no puede seguir avanzando
-                {
-                    if(!m_PlayerInfo.hasEnded && timerCrash >= 0.25)
-                        m_PoleManager.crashed = true;
-
-                    //To Do: Activar señal grafica que indique que el coche se ha ahostiado
-                    //print("ME HE AHOSTIADO");
-
+            foreach (var wh in wheelHit)
+            {
+                if (wh.normal == Vector3.zero) //Este if detecta cuando el coche se ha chocado y no puede seguir avanzando
+                {
+                    if(!scriptManager.playerInfo.hasEnded && timerCrash >= 0.25)
+                        ScriptManager.polePositionManager.crashed = true;
                     if (Input.GetAxis("ResetCar") > 0)
-                    {
-                        m_PoleManager.crashed = false;
-                        int segIdx;
-                        float carDist;
-                        Vector3 newPosition;
-                        m_PoleManager.m_CircuitController.ComputeClosestPointArcLength(transform.position, out segIdx, out newPosition, out carDist); ;
+                    {
+                        ScriptManager.polePositionManager.crashed = false;
+
+                        int segIdx;
+                        float carDist;
+
+                        Vector3 newPosition;
+                        ScriptManager.polePositionManager.m_CircuitController.ComputeClosestPointArcLength(transform.position, out segIdx, out newPosition, out carDist); ;
                         transform.position = newPosition;
-
-                        print("checkcount" + m_PlayerInfo.checkpointCount);
-                        switch (m_PlayerInfo.checkpointCount)
+                        print("checkcount" + scriptManager.playerInfo.checkpointCount);
+                        canMove = false; //Esto existe para crear una penalizacion de tiempo por darle la vuelta al coche, pero de momento funciona un poco mal
+
+                        switch (scriptManager.playerInfo.checkpointCount)
                         {
-                            case 1:
-                                transform.rotation = Quaternion.Euler(0, 180, 0);
-                                transform.position = m_PoleManager.checkPointList.transform.GetChild(1).position;
+                            case 1:
+                                transform.rotation = Quaternion.Euler(0, 180, 0);
+                                transform.position = ScriptManager.polePositionManager.checkPointList.transform.GetChild(1).position;
                                 break;
-                            case 2:
-                                transform.rotation = Quaternion.Euler(0, 90, 0);
-                                transform.position = m_PoleManager.checkPointList.transform.GetChild(2).position;
+                            case 2:
+                                transform.rotation = Quaternion.Euler(0, 90, 0);
+                                transform.position = ScriptManager.polePositionManager.checkPointList.transform.GetChild(2).position;
                                 break;
-                            case 3:
-                                transform.rotation = Quaternion.Euler(0, 0, 0);
-                                transform.position = m_PoleManager.checkPointList.transform.GetChild(3).position;
+                            case 3:
+                                transform.rotation = Quaternion.Euler(0, 0, 0);
+                                transform.position = ScriptManager.polePositionManager.checkPointList.transform.GetChild(3).position;
                                 break;
-                            case 4:
-                                transform.rotation = Quaternion.Euler(0, -90, 0);
-                                transform.position = m_PoleManager.checkPointList.transform.GetChild(4).position;
+                            case 4:
+                                transform.rotation = Quaternion.Euler(0, -90, 0);
+                                transform.position = ScriptManager.polePositionManager.checkPointList.transform.GetChild(4).position;
                                 break;
-                            default:
-                                transform.rotation = Quaternion.Euler(0, -90, 0);
-                                transform.position = m_PoleManager.checkPointList.transform.GetChild(0).position;
-                                break;
+                            default:
+                                transform.rotation = Quaternion.Euler(0, -90, 0);
+                                transform.position = ScriptManager.polePositionManager.checkPointList.transform.GetChild(0).position;
+                                break;
                         }
-                        
-
-                        if (canMove)
-                        {
-                            localMove = false;
-                            canMove = false; //Esto existe para crear una penalizacion de tiempo por darle la vuelta al coche, pero de momento funciona un poco mal
-                            StartCoroutine("RestartMovementRace", 1);
-                        }
-                        else
-                        {
-                            localMove = false; //Esto existe para crear una penalizacion de tiempo por darle la vuelta al coche, pero de momento funciona un poco mal
-                            StartCoroutine("RestartMovementRecon", 1);
-                        }
+                            StartCoroutine("RestartMovementRace", 1);
                     }
-
                     return; // wheels arent on the ground so dont realign the rigidbody velocity
-                }
-                else
-                {
-                    cont++;
-                    m_PoleManager.crashed = false;
-                    if (cont >= 2)
+                }
+                else
+                {
+                    cont++;
+                    ScriptManager.polePositionManager.crashed = false;
+                    if (cont >= 2)
                         timerCrash = 0;
                 }
             }
@@ -375,20 +329,12 @@ public class PlayerController : NetworkBehaviour
 
     IEnumerator RestartMovementRace(float sec)
     {
-        //print("Corutineando");
-        m_PoleManager.crashed = false;
+        ScriptManager.polePositionManager.crashed = false;
         yield return new WaitForSeconds(sec);
-        m_PoleManager.crashed = false;
+        ScriptManager.polePositionManager.crashed = false;
         canMove = true;
-        localMove = true;
     }
-    IEnumerator RestartMovementRecon(float sec)
-    {
-        //print("Corutineando");
-        yield return new WaitForSeconds(sec);
-        m_PoleManager.crashed = false;
-        localMove = true;
-    }
+
 
     #endregion
 }
