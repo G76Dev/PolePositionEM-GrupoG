@@ -3,7 +3,7 @@ using Mirror;
 using UnityEngine;
 using Random = System.Random;
 using System.Threading;
-
+using UnityEngine.UI;
 /*
 	Documentation: https://mirror-networking.com/docs/Guides/NetworkBehaviour.html
 	API Reference: https://mirror-networking.com/docs/api/Mirror.NetworkBehaviour.html
@@ -19,12 +19,12 @@ public class SetupPlayer : NetworkBehaviour
     private ScriptManager scriptManager;
     //public PlayerController scriptManager.playerController;
     //private CheckpointController scriptManager.checkPointController;
-    //public PlayerInfo scriptManager.playerInfo;
+    public PlayerInfo playerInfo;
     //private MirrorManager m_MirrorManager;
     //private PolePositionManager scriptManager.polePositionManager;
 
     //almacenamos el script de selecion del modelo del coche
-    private CharacterSelection m_selection;
+    public CharacterSelection m_selection;
     [SyncVar(hook = nameof(SetColor))] private int color;
 
     #region Start & Stop Callbacks
@@ -37,7 +37,7 @@ public class SetupPlayer : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
-        m_ID = connectionToClient.connectionId;
+        //m_ID = connectionToClient.connectionId;
     }
 
     /// <summary>
@@ -51,7 +51,7 @@ public class SetupPlayer : NetworkBehaviour
         scriptManager = GetComponent<ScriptManager>(); //Asignamos aquí el scriptManager. Podria dar problemas si el startclient se ejecutase antes del awake de scriptManager
 
         //Inicialización de los valores del playerInfo
-        scriptManager.playerInfo.ID = m_ID;
+        scriptManager.playerInfo.ID = 0;
         scriptManager.playerInfo.Name = m_Name;
         scriptManager.playerInfo.CurrentLap = 0;
         scriptManager.playerInfo.CurrentPosition = 0;
@@ -84,7 +84,7 @@ public class SetupPlayer : NetworkBehaviour
             scriptManager.checkPointController.changeLapEvent += ScriptManager.polePositionManager.resetLapTime;
             scriptManager.checkPointController.endRaceEvent += ScriptManager.polePositionManager.PostGameCamera;
             //scriptManager.checkPointController.endRaceEvent += scriptManager.polePositionManager.managePlayersEnded;
-            scriptManager.checkPointController.endRaceEvent += ScriptManager.UIManager.endResultsHUD;            ScriptManager.UIManager.PlayerReadyEvent += ScriptManager.polePositionManager.ManageStart;
+            scriptManager.checkPointController.endRaceEvent += ScriptManager.UIManager.endResultsHUD;            ScriptManager.UIManager.PlayerReadyEvent += ScriptManager.polePositionManager.ManageStart;            ScriptManager.UIManager.mirror = GetComponent<MirrorManager>();
         }
 
         //Añade el jugador a la lista en todos los clientes y servidor
@@ -120,7 +120,7 @@ public class SetupPlayer : NetworkBehaviour
 
     private void Awake()
     {       
-        //scriptManager.playerInfo = GetComponent<PlayerInfo>();
+        playerInfo = GetComponent<PlayerInfo>();
         m_NetworkManager = FindObjectOfType<NetworkManager>();
         //scriptManager.UIManager = FindObjectOfType<UIManager>();
         //scriptManager.polePositionManager = FindObjectOfType<PolePositionManager>();
@@ -223,7 +223,7 @@ public class SetupPlayer : NetworkBehaviour
 
     //Función que se ejecuta en el servidor para actualizar el valor de la variable del color.
     [Command]
-    void CmdSaveColor(int colorNuevo)
+    public void CmdSaveColor(int colorNuevo)
     {
         color = colorNuevo;
     }
@@ -275,18 +275,19 @@ public class SetupPlayer : NetworkBehaviour
     //Función que se ejecuta cuando cambia el valor de la variable color. Actualiza el color del coche con el color nuevo.
     void SetColor(int oldColor, int newColor)
     {
+        GameObject.Find("Debug").GetComponent<Text>().text = "Nuevo color" + newColor;
         Material(newColor);
     }
     //Función que se ejecuta cuando cambia el valor de la variable m_Name. Actualiza el nombre del jugador con el nombre nuevo.
     void SetNombre(string antiguoNombre, string nuevoNombre)
     {
-        scriptManager.playerInfo.Name = nuevoNombre;
+        playerInfo.Name = nuevoNombre;
     }
 
     //Función que se ejecuta cuando cambia el valor de la variable m_Name. Actualiza el nombre del jugador con el nombre nuevo.
     void SetID(int antiguoID, int nuevoID)
     {
-        scriptManager.playerInfo.ID = nuevoID;
+        playerInfo.ID = nuevoID;
         print("ant id: " + antiguoID);
         print("ID: " + nuevoID);
     }

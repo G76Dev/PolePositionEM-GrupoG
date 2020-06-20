@@ -246,7 +246,7 @@ public class PolePositionManager : NetworkBehaviour
             tempTime = 0;
             totalTime = 0;
             int cont = 0;
-            float aux;
+            float aux;            scriptManager.setupPlayer.CmdSaveColor(scriptManager.setupPlayer.m_selection.selection);
             //print("Numplayers: " + numPlayers + " mplayers: " + m_Players.Count);
             for (int i = 0; i < times.Length; i++)
             {
@@ -294,6 +294,8 @@ public class PolePositionManager : NetworkBehaviour
 
     private void Update()
     {
+        
+
         //Si no hay ninguna jugador, ignora el update
         if (numPlayers == 0)
         {

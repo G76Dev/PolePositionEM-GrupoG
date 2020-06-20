@@ -46,6 +46,8 @@ public class UIManager : NetworkBehaviour
     [SerializeField] private Text playAgainText;
     [SerializeField] private GameObject playAgainWindow;
 
+    public MirrorManager mirror;
+
     //Delegate events
     public delegate void SyncStart();
     public event SyncStart PlayerReadyEvent;
@@ -286,10 +288,10 @@ public class UIManager : NetworkBehaviour
 
     IEnumerator WaitInitial()
     {
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSeconds(0.5f);
         ActivateInGameHUD();
         doneWaiting = false;
-        scriptManager.mirrorManager.CmdGetCanEnterFromServer();
+        mirror.CmdGetCanEnterFromServer();
         StartCoroutine("WaitAndEnter");
     }
 
